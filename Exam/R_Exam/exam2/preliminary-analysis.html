@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>3 Preliminary analysis | Exam project</title>
+  <meta name="description" content="3 Preliminary analysis | Exam project" />
+  <meta name="generator" content="bookdown 0.11 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="3 Preliminary analysis | Exam project" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="3 Preliminary analysis | Exam project" />
+  
+  
+  
+
+<meta name="author" content="Marco Zullich" />
+
+
+<meta name="date" content="2019-06-27" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="problem-specification.html">
+<link rel="next" href="bayesian-modelling.html">
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">A Minimal Book Example</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="1" data-path="prerequisites.html"><a href="prerequisites.html"><i class="fa fa-check"></i><b>1</b> Prerequisites</a></li>
+<li class="chapter" data-level="2" data-path="problem-specification.html"><a href="problem-specification.html"><i class="fa fa-check"></i><b>2</b> Problem specification</a></li>
+<li class="chapter" data-level="3" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html"><i class="fa fa-check"></i><b>3</b> Preliminary analysis</a><ul>
+<li class="chapter" data-level="3.1" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#univariate-analysis"><i class="fa fa-check"></i><b>3.1</b> Univariate analysis</a><ul>
+<li class="chapter" data-level="3.1.1" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#numerical-variables"><i class="fa fa-check"></i><b>3.1.1</b> Numerical variables</a></li>
+<li class="chapter" data-level="3.1.2" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#categorical-variables"><i class="fa fa-check"></i><b>3.1.2</b> Categorical variables</a></li>
+<li class="chapter" data-level="3.1.3" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#missing-values"><i class="fa fa-check"></i><b>3.1.3</b> Missing values</a></li>
+</ul></li>
+<li class="chapter" data-level="3.2" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#bivariate-analysis"><i class="fa fa-check"></i><b>3.2</b> Bivariate analysis</a><ul>
+<li class="chapter" data-level="3.2.1" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#firstbiv"><i class="fa fa-check"></i><b>3.2.1</b> <code>attain</code> and <code>verbal</code></a></li>
+<li class="chapter" data-level="3.2.2" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#attain-and-sex"><i class="fa fa-check"></i><b>3.2.2</b> <code>attain</code> and <code>sex</code></a></li>
+<li class="chapter" data-level="3.2.3" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#attain-and-social-category"><i class="fa fa-check"></i><b>3.2.3</b> <code>attain</code> and social category</a></li>
+<li class="chapter" data-level="3.2.4" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#attain-and-secondary-school"><i class="fa fa-check"></i><b>3.2.4</b> <code>attain</code> and secondary school</a></li>
+<li class="chapter" data-level="3.2.5" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#social-composition-for-primary-schools"><i class="fa fa-check"></i><b>3.2.5</b> social composition for primary schools</a></li>
+<li class="chapter" data-level="3.2.6" data-path="preliminary-analysis.html"><a href="preliminary-analysis.html#attain-and-primary-school"><i class="fa fa-check"></i><b>3.2.6</b> attain and primary school</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html"><i class="fa fa-check"></i><b>4</b> Bayesian modelling</a><ul>
+<li class="chapter" data-level="4.1" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#attain01-verbal"><i class="fa fa-check"></i><b>4.1</b> <code>attain01</code> ~ <code>verbal</code></a><ul>
+<li class="chapter" data-level="4.1.1" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#coefficients-analyisis"><i class="fa fa-check"></i><b>4.1.1</b> Coefficients analyisis</a></li>
+<li class="chapter" data-level="4.1.2" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#posterior-predictive-checks"><i class="fa fa-check"></i><b>4.1.2</b> Posterior predictive checks</a></li>
+</ul></li>
+<li class="chapter" data-level="4.2" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#hierarchical-models"><i class="fa fa-check"></i><b>4.2</b> Hierarchical models</a><ul>
+<li class="chapter" data-level="4.2.1" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#hierarchy-over-social-category"><i class="fa fa-check"></i><b>4.2.1</b> Hierarchy over social category</a></li>
+<li class="chapter" data-level="4.2.2" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#hierarchy-over-primary-school"><i class="fa fa-check"></i><b>4.2.2</b> Hierarchy over primary school</a></li>
+<li class="chapter" data-level="4.2.3" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#hierarchy-over-secondary-school"><i class="fa fa-check"></i><b>4.2.3</b> Hierarchy over secondary school</a></li>
+<li class="chapter" data-level="4.2.4" data-path="bayesian-modelling.html"><a href="bayesian-modelling.html#cross-hierarchy-with-secondary-school-and-social-extraction"><i class="fa fa-check"></i><b>4.2.4</b> Cross-hierarchy with secondary school and social extraction</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="5" data-path="conclusion.html"><a href="conclusion.html"><i class="fa fa-check"></i><b>5</b> Conclusion</a><ul>
+<li class="chapter" data-level="5.1" data-path="conclusion.html"><a href="conclusion.html#possible-improvements"><i class="fa fa-check"></i><b>5.1</b> Possible improvements</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html"><i class="fa fa-check"></i><b>6</b> Appendix - Stan files</a><ul>
+<li class="chapter" data-level="6.1" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html#simple-logistic-regression-with-one-predictor"><i class="fa fa-check"></i><b>6.1</b> Simple logistic regression with one predictor</a></li>
+<li class="chapter" data-level="6.2" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html#hierarchical-logistic-regression-with-one-predictor-and-group-variable-intercept"><i class="fa fa-check"></i><b>6.2</b> Hierarchical logistic regression with one predictor and group, variable intercept</a><ul>
+<li class="chapter" data-level="6.2.1" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html#more-informative-priors"><i class="fa fa-check"></i><b>6.2.1</b> More informative priors</a></li>
+</ul></li>
+<li class="chapter" data-level="6.3" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html#hierarchical-logistic-regression-with-one-predictor-and-group-variable-intercepts-and-slopes"><i class="fa fa-check"></i><b>6.3</b> Hierarchical logistic regression with one predictor and group, variable intercepts and slopes</a></li>
+<li class="chapter" data-level="6.4" data-path="appendix-stan-files.html"><a href="appendix-stan-files.html#simple-probit-regression-with-one-predictor"><i class="fa fa-check"></i><b>6.4</b> Simple probit regression with one predictor</a></li>
+</ul></li>
+<li class="divider"></li>
+<li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
+
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Exam project</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="preliminary-analysis" class="section level1">
+<h1><span class="header-section-number">3</span> Preliminary analysis</h1>
+<div id="univariate-analysis" class="section level2">
+<h2><span class="header-section-number">3.1</span> Univariate analysis</h2>
+<p>As usually done on preliminary analysis, the first thing we want to do is establishing the types of the variables:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inspectdf<span class="op">::</span><span class="kw">inspect_types</span>(data)</code></pre></div>
+<pre><code>## # A tibble: 2 x 4
+##   type      cnt  pcnt col_name 
+##   &lt;chr&gt;   &lt;int&gt; &lt;dbl&gt; &lt;list&gt;   
+## 1 factor      3    50 &lt;chr [3]&gt;
+## 2 numeric     3    50 &lt;chr [3]&gt;</code></pre>
+<p>We have 3 categorial and 3 numerical variables.</p>
+<div id="numerical-variables" class="section level3">
+<h3><span class="header-section-number">3.1.1</span> Numerical variables</h3>
+<p>First we’ll analyze the numerical ones:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data_inspect_num =<span class="st"> </span>inspectdf<span class="op">::</span><span class="kw">inspect_num</span>(data)
+data_inspect_num <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(<span class="op">-</span>hist)</code></pre></div>
+<pre><code>## # A tibble: 3 x 9
+##   col_name   min    q1 median  mean    q3   max    sd pcnt_na
+##   &lt;chr&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
+## 1 attain       1     3      5  5.68     9    10  3.06       0
+## 2 social       0     0      0  6.84    20    31 10.9        0
+## 3 verbal     -30   -11     -2 -2.20     7    40 13.3        0</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data_inspect_num <span class="op">%&gt;%</span><span class="st"> </span>inspectdf<span class="op">::</span><span class="kw">show_plot</span>()</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>We see that the only variable which seems to have an approximately continuous distribution is <code>verbal</code>.</p>
+<p>The variable <code>attain</code>, which will be our response, show a very imbalanced bimodal discrete distribution, with peaks around 2 and 10.</p>
+<p><code>social</code>, instead, despite seemingly having a large support, has appearantly only have few values:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data<span class="op">$</span>social <span class="op">%&gt;%</span><span class="st"> </span>table</code></pre></div>
+<pre><code>## .
+##    0    1   20   31 
+## 2247  185  706  297</code></pre>
+</div>
+<div id="categorical-variables" class="section level3">
+<h3><span class="header-section-number">3.1.2</span> Categorical variables</h3>
+<p>Next, we analyze the factors:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inspectdf<span class="op">::</span><span class="kw">inspect_cat</span>(data) <span class="op">%&gt;%</span><span class="st"> </span>inspectdf<span class="op">::</span><span class="kw">show_plot</span>()</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-6-1.png" width="672" /> From the plot above we can see that:</p>
+<ul>
+<li><p>The <code>primary</code> variable has a huge support (148 categories) and there seems not to be a prevalent school between them, although there’re primary schools with very little representation.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(primary) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarise</span>(<span class="dt">n=</span><span class="kw">n</span>()) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(primary,n) <span class="op">%&gt;%</span>
+<span class="kw">mutate</span>(<span class="dt">size=</span><span class="kw">ifelse</span>(n<span class="op">&lt;</span><span class="dv">10</span>,<span class="st">&quot;small&quot;</span>,<span class="kw">ifelse</span>(n<span class="op">&gt;</span><span class="dv">50</span>,<span class="st">&quot;large&quot;</span>,<span class="st">&quot;medium&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="kw">pull</span>(size) <span class="op">%&gt;%</span><span class="st"> </span>table</code></pre></div>
+<pre><code>## .
+##  large medium  small 
+##     10     95     43</code></pre>
+<p>As we can see, 43 primary schools are represented by 10 students or less.</p></li>
+<li><p>The <code>second</code> variable seems to have a very uniform distribution as well: we have 19 secondary schools in which the test is submitted to students</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(second) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarise</span>(<span class="dt">n=</span><span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">filter</span>(n<span class="op">==</span><span class="kw">max</span>(n) <span class="op">|</span><span class="st"> </span>n<span class="op">==</span><span class="kw">min</span>(n))</code></pre></div>
+<pre><code>## # A tibble: 2 x 2
+##   second     n
+##   &lt;fct&gt;  &lt;int&gt;
+## 1 10        92
+## 2 14       290</code></pre>
+<p>The school 10 (smallest one) has 92 students, while the school 14 (biggest one) has 290.</p></li>
+<li><p>The students are equally distributed between females and males</p></li>
+</ul>
+<p>Finally, as per request point 1, we have to recode the variable <code>attain</code> into <code>attain01</code> which is an indicator for the score test being higher than 5:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data =<span class="st"> </span>data <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">attain01=</span><span class="kw">cut</span>(attain,<span class="dt">breaks=</span><span class="kw">c</span>(<span class="op">-</span><span class="ot">Inf</span>,<span class="dv">5</span>,<span class="ot">Inf</span>),<span class="dt">labels=</span><span class="kw">c</span>(<span class="dv">0</span>,<span class="dv">1</span>)))
+
+<span class="kw">ggplot</span>(data, <span class="kw">aes</span>(<span class="dt">x=</span>attain01)) <span class="op">+</span><span class="st"> </span><span class="kw">geom_bar</span>(<span class="dt">fill=</span><span class="st">&#39;orange&#39;</span>)</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>We see that the two classes are balanced (around 1750 students in class 0, 1600 in class 1).</p>
+</div>
+<div id="missing-values" class="section level3">
+<h3><span class="header-section-number">3.1.3</span> Missing values</h3>
+<p>We can easily test for missing values with <code>inspect_na</code> of the <code>inspectdf</code> package.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inspectdf<span class="op">::</span><span class="kw">inspect_na</span>(data)</code></pre></div>
+<pre><code>## # A tibble: 7 x 3
+##   col_name   cnt  pcnt
+##   &lt;chr&gt;    &lt;dbl&gt; &lt;dbl&gt;
+## 1 verbal       0     0
+## 2 attain       0     0
+## 3 primary      0     0
+## 4 sex          0     0
+## 5 social       0     0
+## 6 second       0     0
+## 7 attain01     0     0</code></pre>
+<p>We have no missing values.</p>
+</div>
+</div>
+<div id="bivariate-analysis" class="section level2">
+<h2><span class="header-section-number">3.2</span> Bivariate analysis</h2>
+<p>Before starting on with the bayesian modelling, it’s a nice practice to check for correlation between the variables in the dataset.</p>
+<div id="firstbiv" class="section level3">
+<h3><span class="header-section-number">3.2.1</span> <code>attain</code> and <code>verbal</code></h3>
+<p>The first correlation I’ll check is <code>attain01</code> vs. <code>verbal</code>. Since the former is a dichotomic variable, and the latter is approximately continuous, I’ll fit a frequentist logistic regression to check:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">glm</span>(attain01<span class="op">~</span>verbal, <span class="dt">data=</span>data, <span class="dt">family=</span>binomial) <span class="op">%&gt;%</span><span class="st"> </span>summary</code></pre></div>
+<pre><code>## 
+## Call:
+## glm(formula = attain01 ~ verbal, family = binomial, data = data)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.8186  -0.6583  -0.1477   0.6794   2.7287  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.208883   0.045968   4.544 5.52e-06 ***
+## verbal      0.162804   0.005548  29.344  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 4755.8  on 3434  degrees of freedom
+## Residual deviance: 3005.5  on 3433  degrees of freedom
+## AIC: 3009.5
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<p>The coefficient for <code>verbal</code> is positive and significative, yet not huge: that suggests a small positive correlation between the score obtained during the secondary school’s entrance test and the test whose scores are being analyzed now. This can be appreciated in the plots below:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(<span class="dt">data=</span>data, <span class="kw">aes</span>(<span class="dt">y=</span>verbal, <span class="dt">x=</span>attain01, <span class="dt">fill=</span>attain01)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_boxplot</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Distribution of `verbal` given `attain01`&quot;</span>)</code></pre></div>
+<p><img src="index_files/figure-html/box_attain_verb-1.png" width="672" /></p>
+<p>Especially from the boxplot above, we can see that the distributions of <code>verbal</code> given <code>attain01</code> are different, and that the central 50% of the distribution lie on separate portions of the space of <code>verbal</code>.</p>
+<p>Those observations might lay the foundations for the models we’re going to construct in the next sections.</p>
+<p><img src="index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="attain-and-sex" class="section level3">
+<h3><span class="header-section-number">3.2.2</span> <code>attain</code> and <code>sex</code></h3>
+<p>First I create a contingency table, from which we can appreciate a difference in distribution of <code>attain01</code> for different sex groups:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">contmatr =<span class="st"> </span>data <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(sex, attain01) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">summarise</span>(<span class="dt">n =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">spread</span>(attain01, n) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">   </span>magrittr<span class="op">::</span><span class="kw">set_rownames</span>(.<span class="op">$</span>sex) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">select</span>(<span class="op">-</span>sex) <span class="op">%&gt;%</span>
+<span class="st">   </span>as.matrix
+
+make_cont_table =<span class="st"> </span><span class="cf">function</span>(x){
+  <span class="kw">rbind</span>(
+  <span class="kw">cbind</span>(x,<span class="kw">apply</span>(x,<span class="dt">MARGIN =</span> <span class="dv">1</span>, <span class="dt">FUN =</span> sum) <span class="op">%&gt;%</span>
+<span class="st">                  </span><span class="kw">matrix</span>(<span class="dt">ncol =</span> <span class="dv">1</span>)),
+  <span class="kw">c</span>(<span class="kw">apply</span>(x,<span class="dt">MARGIN =</span> <span class="dv">2</span>, <span class="dt">FUN =</span> sum),
+    <span class="dv">1</span>))
+}
+
+<span class="kw">make_cont_table</span>(contmatr <span class="op">/</span><span class="st"> </span><span class="kw">sum</span>(contmatr))</code></pre></div>
+<pre><code>##           0         1          
+## M 0.2847162 0.2215429 0.5062591
+## F 0.2363901 0.2573508 0.4937409
+##   0.5211063 0.4788937 1.0000000</code></pre>
+<p>These two plots help better visualize the disparity:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vcd<span class="op">::</span><span class="kw">mosaic</span>(contmatr, <span class="dt">shade=</span>T, <span class="dt">legend=</span>F,
+            <span class="dt">main =</span> <span class="st">&#39;Joint distribution of `attain01` and `sex`&#39;</span>,
+            <span class="dt">labeling_args =</span> 
+              <span class="kw">list</span>(<span class="dt">set_varnames =</span> <span class="kw">c</span>(<span class="dt">A=</span><span class="st">&quot;sex&quot;</span>, <span class="dt">B=</span><span class="st">&quot;attain01&quot;</span>)))</code></pre></div>
+<p><img src="index_files/figure-html/mosaic_attain_sex-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(data, <span class="kw">aes</span>(<span class="dt">x=</span>attain01, <span class="dt">fill=</span>sex)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_bar</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Distribuion of `attain01` given `sex`&quot;</span>)</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>From the charts above, there seems to be a disparity in results depending upon the gender: females seem to have fared better than men, despite the marginal distribution of <code>sex</code> being almost uniform</p>
+</div>
+<div id="attain-and-social-category" class="section level3">
+<h3><span class="header-section-number">3.2.3</span> <code>attain</code> and social category</h3>
+<p>First, I recode the variable <code>social</code> into a factor with three determinations:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data =<span class="st"> </span>data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>(<span class="dt">social_cat =</span> <span class="kw">cut</span>(
+          social, <span class="kw">c</span>(<span class="op">-</span><span class="ot">Inf</span>,<span class="dv">2</span>,<span class="dv">21</span>,<span class="ot">Inf</span>), <span class="dt">labels=</span><span class="kw">c</span>(<span class="st">&#39;low&#39;</span>,<span class="st">&#39;middle&#39;</span>,<span class="st">&#39;high&#39;</span>)
+        ))</code></pre></div>
+<p>Then, I analize it in similar fashion as the previous paragraph:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">contmatr =<span class="st"> </span>data <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(social_cat, attain01) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">summarise</span>(<span class="dt">n =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">spread</span>(attain01, n) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">   </span>magrittr<span class="op">::</span><span class="kw">set_rownames</span>(.<span class="op">$</span>social_cat) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">select</span>(<span class="op">-</span>social_cat) <span class="op">%&gt;%</span>
+<span class="st">   </span>as.matrix
+
+
+<span class="kw">make_cont_table</span>(contmatr<span class="op">/</span><span class="kw">sum</span>(contmatr))</code></pre></div>
+<pre><code>##                 0          1           
+## low    0.41979622 0.28820961 0.70800582
+## middle 0.06462882 0.14090247 0.20553130
+## high   0.03668122 0.04978166 0.08646288
+##        0.52110626 0.47889374 1.00000000</code></pre>
+<p>Charts:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vcd<span class="op">::</span><span class="kw">mosaic</span>(contmatr, <span class="dt">shade=</span>T, <span class="dt">legend=</span>F,
+            <span class="dt">main =</span> <span class="st">&#39;Joint distribution of `attain01` and social category&#39;</span>,
+            <span class="dt">labeling_args =</span> 
+              <span class="kw">list</span>(<span class="dt">set_varnames =</span> <span class="kw">c</span>(<span class="dt">A=</span><span class="st">&quot;social category&quot;</span>, <span class="dt">B=</span><span class="st">&quot;attain01&quot;</span>)))</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p>It seems that:</p>
+<ul>
+<li>there’s a large disparity between results between low and medium/high class students: the former performed poorly (around 60% got a mark below 5), while the latter performed better (35% of middle/high class got a mark below 5).</li>
+<li>however, there seems to be a small difference between middle and high class students, since the middle class overall performed better than high class ones, at least in getting at least a sufficient mark in the test.</li>
+</ul>
+<div id="other-considerations" class="section level4">
+<h4><span class="header-section-number">3.2.3.1</span> Other considerations</h4>
+<p>Adding other variables to the boxplot in @ref(box_attain_verb), we see that:</p>
+<ul>
+<li><p><code>sex</code> doesn’t change much the distribution:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(<span class="dt">data=</span>data, <span class="kw">aes</span>(<span class="dt">y=</span>verbal, <span class="dt">x=</span>attain01, <span class="dt">fill=</span>sex)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_boxplot</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Distribution of `verbal` given `attain01` and `sex`&quot;</span>)</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<p>That probably indicates that the correlation noted in @(mosaic_attain_sex) may be (almost) fully explained by <code>verbal</code>, and the addition of sex to a model already containing <code>verbal</code> as predictor might not bring significative results.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">glm</span>(attain01<span class="op">~</span>sex<span class="op">+</span>verbal, <span class="dt">data=</span>data, <span class="dt">family=</span>binomial) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summary</span>()</code></pre></div>
+<pre><code>## 
+## Call:
+## glm(formula = attain01 ~ sex + verbal, family = binomial, data = data)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.7904  -0.6808  -0.1433   0.7024   2.7511  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept) 0.136902   0.064586   2.120    0.034 *  
+## sexF        0.143356   0.090568   1.583    0.113    
+## verbal      0.162424   0.005554  29.243   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 4755.8  on 3434  degrees of freedom
+## Residual deviance: 3003.0  on 3432  degrees of freedom
+## AIC: 3009
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<p>There seems not to be a substantial difference in effect on <code>attain01</code> for males or females.</p></li>
+<li><p>adding the social category may be useful:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(<span class="dt">data=</span>data, <span class="kw">aes</span>(<span class="dt">y=</span>verbal, <span class="dt">x=</span>attain01, <span class="dt">fill=</span>social_cat)) <span class="op">+</span>
+<span class="st">      </span><span class="kw">geom_boxplot</span>() <span class="op">+</span>
+<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;Distribution of `verbal` given `attain01` and social category&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">palette=</span><span class="dv">5</span>)</code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">glm</span>(attain01<span class="op">~</span>social_cat<span class="op">+</span>verbal, <span class="dt">data=</span>data, <span class="dt">family=</span>binomial) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summary</span>()</code></pre></div>
+<pre><code>## 
+## Call:
+## glm(formula = attain01 ~ social_cat + verbal, family = binomial, 
+##     data = data)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -2.9554  -0.6448  -0.1336   0.6553   2.8019  
+## 
+## Coefficients:
+##                   Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)      -0.025712   0.054839  -0.469   0.6392    
+## social_catmiddle  0.985443   0.117570   8.382   &lt;2e-16 ***
+## social_cathigh    0.343772   0.158908   2.163   0.0305 *  
+## verbal            0.161658   0.005629  28.721   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 4755.8  on 3434  degrees of freedom
+## Residual deviance: 2931.7  on 3431  degrees of freedom
+## AIC: 2939.7
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<p>It seems that the social category adds something to the relationship between <code>atttain01</code> and <code>verbal</code>.</p></li>
+</ul>
+</div>
+</div>
+<div id="attain-and-secondary-school" class="section level3">
+<h3><span class="header-section-number">3.2.4</span> <code>attain</code> and secondary school</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(attain01, second) <span class="op">%&gt;%</span><span class="st"> </span>group_by_all <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">summarise</span>(<span class="dt">n =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">inner_join</span>(data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(second) <span class="op">%&gt;%</span>
+<span class="st">                      </span><span class="kw">group_by</span>(second) <span class="op">%&gt;%</span>
+<span class="st">                      </span><span class="kw">summarise</span>(<span class="dt">stud =</span> <span class="kw">n</span>())) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">mutate</span>(<span class="dt">prop =</span> n<span class="op">/</span>stud),
+       <span class="kw">aes</span>(<span class="dt">x=</span>second, <span class="dt">fill=</span>attain01)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_bar</span>(<span class="kw">aes</span>(<span class="dt">y=</span>prop), <span class="dt">position=</span><span class="st">&quot;stack&quot;</span>, <span class="dt">stat=</span><span class="st">&quot;identity&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Proportion of `attain01` for each secondary school&quot;</span>)</code></pre></div>
+<pre><code>## Joining, by = &quot;second&quot;</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p>There proportions of 0s and 1s in test sufficiency are etherogeneous across the schools: in school 19 only ~20% of students got more than 5 as a score, while in school 12 ~60% of student achieved this result.</p>
+</div>
+<div id="social-composition-for-primary-schools" class="section level3">
+<h3><span class="header-section-number">3.2.5</span> social composition for primary schools</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(data <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">select</span>(second, social_cat) <span class="op">%&gt;%</span><span class="st"> </span>group_by_all <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">summarise</span>(<span class="dt">n =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">inner_join</span>(data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(second) <span class="op">%&gt;%</span>
+<span class="st">                      </span>group_by_all <span class="op">%&gt;%</span>
+<span class="st">                      </span><span class="kw">summarise</span>(<span class="dt">stud =</span> <span class="kw">n</span>())) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">mutate</span>(<span class="dt">prop =</span> n<span class="op">/</span>stud),
+       <span class="kw">aes</span>(<span class="dt">x=</span>second)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_bar</span>(<span class="kw">aes</span>(<span class="dt">y=</span>prop, <span class="dt">fill=</span>social_cat), <span class="dt">position=</span><span class="st">&quot;stack&quot;</span>, <span class="dt">stat=</span><span class="st">&quot;identity&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Proportion of students from social classes for each secondary school&quot;</span>) </code></pre></div>
+<pre><code>## Joining, by = &quot;second&quot;</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(second <span class="op">==</span><span class="st"> </span><span class="dv">19</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">group_by</span>(social_cat) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarise</span>(<span class="dt">n=</span><span class="kw">n</span>())</code></pre></div>
+<pre><code>## # A tibble: 2 x 2
+##   social_cat     n
+##   &lt;fct&gt;      &lt;int&gt;
+## 1 low          103
+## 2 middle         8</code></pre>
+</div>
+<div id="attain-and-primary-school" class="section level3">
+<h3><span class="header-section-number">3.2.6</span> attain and primary school</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(primary, attain01) <span class="op">%&gt;%</span><span class="st"> </span>group_by_all <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">summarise</span>(<span class="dt">n =</span> <span class="kw">n</span>()) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">inner_join</span>(data <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">select</span>(primary) <span class="op">%&gt;%</span>
+<span class="st">                      </span>group_by_all <span class="op">%&gt;%</span>
+<span class="st">                      </span><span class="kw">summarise</span>(<span class="dt">stud =</span> <span class="kw">n</span>())) <span class="op">%&gt;%</span>
+<span class="st">         </span><span class="kw">mutate</span>(<span class="dt">prop =</span> n<span class="op">/</span>stud) ,
+       <span class="kw">aes</span>(<span class="dt">x=</span>primary, <span class="dt">fill=</span>attain01)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_bar</span>(<span class="kw">aes</span>(<span class="dt">y=</span>prop), <span class="dt">position=</span><span class="st">&quot;stack&quot;</span>, <span class="dt">stat=</span><span class="st">&quot;identity&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Proportion of test results for each primary school&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">axis.text.x =</span> <span class="kw">element_blank</span>()) </code></pre></div>
+<pre><code>## Joining, by = &quot;primary&quot;</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+</div>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="problem-specification.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="bayesian-modelling.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"google": false,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "google", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection"
+},
+"search": false
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "";
+    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:" && /^https?:/.test(src))
+      src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>

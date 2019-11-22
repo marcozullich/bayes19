@@ -1,0 +1,315 @@
+---
+title: "Homeworks 03"
+author: "Marco Zullich"
+date: "May 11, 2019"
+output: html_document
+sansfont: Calibri Light
+---
+
+```{r setup, include=TRUE, results='hide'}
+library(rstan)
+library(rstanarm)
+library(dplyr)
+library(ggplot2)
+library(bayesplot)
+library(data.table)
+
+knitr::opts_chunk$set(echo = TRUE)
+theme_set(bayesplot::theme_default())
+rstan_options(auto_write=TRUE)
+```
+
+
+# TH-1
+
+Since in the `R` script there're missing packages, the script was modified and renamed as `4.7_Fitting a series of regressions_trimmed.R`. The only significant update was:
+
+* added reference to `foreign` package for method `read.dta`
+* commented everything from line 34 on since not needed for data loading and wranglin
+
+We start by loading the light script:
+
+```{r, results='hide'}
+source("4.7_Fitting a series of regressions_trimmed.R")
+```
+
+then we finish updating the data as in the `gl_regression_script.R` script:
+
+```{r}
+yr <- 1992
+ok <- nes.year==yr & data$presvote<3
+vote <- data$presvote[ok] - 1
+income <- data$income[ok]
+
+vote = vote %>% as_tibble() %>% filter(!is.na(vote))
+income = income %>% as_tibble() %>% filter(!is.na(income))
+```
+
+Then we produce the `Stan` script `1992polls_probit.stan` to state the probit model we wish to estimate:
+```{r, echo=FALSE, comment=''}
+cat(readLines('1992polls_probit.stan'), sep = '\n')
+```
+
+We compile the model
+```{r}
+probit_1992polls = stan_model('1992polls_probit.stan')
+```
+
+
+We then create the data for the Stan model as a list:
+
+```{r}
+stan_data_1992polls = list(
+  N=nrow(vote),
+  vote = vote %>% pull(),
+  income = income %>% pull()
+)
+```
+
+And run the model
+```{r}
+probit_1992polls_fit = sampling(probit_1992polls, data = stan_data_1992polls, cores = 4)
+# default sample size is 2000, but we burn in the 50% of it
+```
+
+Now that the sampling has finished, we have a look at the coefficients $\alpha$ and $\beta$:
+
+```{r}
+print(probit_1992polls_fit, pars=c("alpha","beta"))
+```
+
+Interpretation of direct effect of the variables on the probability is frail due to the probit link between linear predictor and response; nevertheless, we can say that a unitary increment for the income results in a positive increment of 0.2 on the linear predictor: eventually, there's still a weak positive effect on the probability of voting Republicans.
+The parameter alpha may be interpreted as follows: a zero income results in a low probability of voting Republican, exactly $\Phi(-.87)\approx 0.19$.
+
+The results are different wrt the logistic model ($\alpha=-1.4,\ \beta=0.3$).
+This complies with the expectation that probit model yields coefficients which are approximately the ones obtained in the logistic model, divided by 1.6 ($-1.4/1.6 = -0.875 \approx -0.87;\ .3/1.6=.1875\approx.2$); moreover, the coefficients have the same sign, which means that the positive/negative effect on the probability of voting still stands.
+
+Just a quick check on the model's goodness of fit:
+```{r}
+y_rep <- as.matrix(probit_1992polls_fit, pars = "y_rep")
+ppc_ecdf_overlay(y = stan_data_1992polls$vote, y_rep[1:200,], discrete=TRUE)
+```
+
+We see that the model's goodness of fit is nice, since the original observations `y` fall into the distribution yielded by the model's `y_rep`s.
+
+To complete the exercise, we fit the same model, this time using the `rstanarm` package:
+```{r}
+probit_1992polls_fit_rstanarm = stan_glm(vote ~ income,
+                                         family = binomial(link='probit'),
+                                         data = stan_data_1992polls %>% as.data.frame(),
+                                         prior_intercept = normal(0,10),
+                                         prior = normal(0,2.5),
+                                         cores = 4)
+
+summary(probit_1992polls_fit_rstanarm)
+```
+
+This model yields the same results as far as the parameters estimates and $\hat{R}$ are concerned, but the number of effective sample size is much higher using the `stan_glm` function. This might be attributable to a more optimized sampling algorithm embedded within the `rstanarm` package, which produces less correlated chains for the limited varieties of models it handles; however, an effective sample size of above 800 (as the ones obtained within the `stan` model) seem to be enough to draw inferential conclusions for our parameters.
+
+# LAB-1
+
+## Setup (from labs)
+
+```{r}
+pest_data = readRDS(file = "pest_data.RDS")
+
+N_months <- length(unique(pest_data$date))
+N_buildings <- length(unique(pest_data$building_id))
+
+# Add some IDs for building and month
+pest_data <- pest_data %>%
+  mutate(
+    building_fac = factor(building_id, levels = unique(building_id)),
+    building_idx = as.integer(building_fac),
+    ids = rep(1:N_months, N_buildings),
+    mo_idx = lubridate::month(date)
+  )
+
+# Center and rescale the building specific data
+building_data <- pest_data %>%
+    dplyr::select(
+      building_idx,
+      live_in_super,
+      age_of_building,
+      total_sq_foot,
+      average_tenant_age,
+      monthly_average_rent
+    ) %>%
+    unique() %>%
+    arrange(building_idx) %>%
+    dplyr::select(-building_idx) %>%
+    scale(scale=FALSE) %>%
+    as.data.frame() %>%
+    mutate( # scale by constants
+      age_of_building = age_of_building / 10,
+      total_sq_foot = total_sq_foot / 10000,
+      average_tenant_age = average_tenant_age / 10,
+      monthly_average_rent = monthly_average_rent / 1000
+    ) %>%
+    as.matrix()
+
+stan_dat_hier <-
+  with(pest_data,
+        list(complaints = complaints,
+             traps = traps,
+             N = length(traps),
+             J = N_buildings,
+             log_sq_foot = log(pest_data$total_sq_foot/1e4),
+             building_data = building_data[,-3],
+             mo_idx = as.integer(as.factor(date)),
+             K = 4,
+             building_idx = building_idx
+             )
+       )
+```
+
+## Analysis of the model
+
+The model to be analyzed is the negative-binomial hierarchical model with non-centered parametrization for $\mu$, and the intercept component specific to the building:
+$$
+\text{complaints}_{ib} \sim \text{Neg-Binomial}(\lambda_{ib}, \phi) \\
+\lambda_{ib} = \exp(\eta_{ib}) \\
+\eta_{ib} = \mu_{g(i)} + \beta\cdot \text{traps}_i + \text{log_sq_foot}_i \\
+\mu_b = \alpha + \zeta_{\text{super}} \cdot \text{super}_b + ... + \zeta_{\text{mar}} \cdot\text{mar}_b + \sigma_\mu \cdot \mu_{\text{raw}} \\
+\mu_\text{raw} \sim N(0,1) \\ \\
+g(i) \rightarrow \text{function returning the building index for unit } i,\ i\in {1,...,N} 
+$$
+
+We compile the STAN file, then run the MCMC sampling:
+
+```{r}
+comp_model_NB_hier_ncp <- stan_model('../../Labs/Lab05/hier_NB_regression_reparam.stan')
+NB_hier_ncp_fit = sampling(comp_model_NB_hier_ncp, data=stan_dat_hier, chains=4, cores=4)
+```
+
+Before starting with the graphical analysis, we want to visualize an overview of the parameters estimated by STAN.
+
+```{r}
+print(NB_hier_ncp_fit, pars = c('sigma_mu','beta','alpha','phi','mu'))
+```
+
+We see that all `Rhat`s are below 1, and the high `neff`s (except maybe for $\sigma_{\mu}$, but, still, more than 1000 seems a good value for it) indicate that the chains converged correctly, without divergent transitions.
+
+We can also have a look at the distribution of our parameters via `mcmc_areas` within `bayesplot`. Note that to obtain the same set of parameters as the table we just produce, we need to tweak the parameters' vector a little bit:
+
+```{r, fig.height=10}
+params = NB_hier_ncp_fit@sim$fnames_oi %>% as_tibble %>% filter(value %in% c('sigma_mu','beta','alpha','phi') | (value %like% 'mu' & !value %like% 'mu_raw')) %>% pull
+
+mcmc_areas(as.array(NB_hier_ncp_fit), pars = params)
+```
+
+The added value of this graphical represantation is that we have an immediate feedback for mean, variance, and confidence intervals for our select parameters.
+
+We note how all the $\mu$s (and $\alpha$ as well) have a very flat density curve due to high variance, if compared to the previous parameters in the list; however, all parameters show evidence of being, with high probability, different than zero, being 0 in all of their tails, as we can easily see from the chart above.
+
+Now we can start the graphical analysis for the goodness of fit:
+
+## Density (ecdf) overlay
+
+We decided to plot the ecdf since the distribution is discrete and `ppc_dens_overlay` doesn't have the option for discrete mass.
+
+```{r}
+y_rep = as.matrix(NB_hier_ncp_fit, pars = "y_rep")
+y = stan_dat_hier$complaints
+ppc_ecdf_overlay(y, y_rep, discrete = T)
+```
+
+The ecdf for `y` is well positioned inside the lattice of the ecdf's of the replicated data, which is an indication of goodness of fit.
+
+## Statistics comparisons
+
+Next, we have a bunch of graphs to compare statistics between the observations and the replicated data.
+
+The most simple one is the graph for comparing means:
+```{r}
+ppc_stat(y, y_rep) #mean is default stat
+```
+
+What we can immediately notice from the graph is that the observations' mean lies very close to the modal bin of the distribution of the replicated data means, another indication that, as far as this statistic is concerned, there's a goodness of fit.
+
+The analysis may be extended to another statistic. One of the stats that it's very important to check when modelling count data is the proportion of zeros, which, in the Poisson model, was substantially different between original and replicated data. We pass the statistic to the `ppc_stat` method as an anonymous function:
+
+```{r}
+ppc_stat(y, y_rep, stat = function(x) length(which(x==0))/length(x))
+```
+
+Though the generated quantities seem to follow a multimodal distribution, the observed data's proportion of zeros seems to fit right in the median of it, which nonetheless has a high probability mass associated and, again, indicates an acceptable goodness of fit.
+
+The same may be carried out for the subgroups of our model, the buildings. This for the mean:
+
+```{r, fig.height=10}
+ppc_stat_grouped(
+  y = stan_dat_hier$complaints,
+  yrep = y_rep,
+  group = pest_data$building_id,
+  stat = 'mean',
+  binwidth = 0.5
+)
+```
+
+What we can notice is that the observed mean is always very close to the modal bin of the generated quantites' means.
+This not only shows a general goodness of fit, but specifically indicates that the goodness of fit carries on to an increased granularity.
+
+The following is the same analysis for the proportion of zeros:
+
+```{r}
+ppc_stat_grouped(
+  y = stan_dat_hier$complaints,
+  yrep = y_rep,
+  group = pest_data$building_id,
+  stat =  function(x) length(which(x==0))/length(x),
+  binwidth = 0.04
+)
+```
+
+In this last graph we may have an indication that the model is still missing something, as, specifically for buildings 13 and 98, and, in a lighter fashion, also 70 and 62, the observed statistic tends to fall off the areas where the greatest probability mass resides; this effect, though, isn't very pronounced, as the observed value is not to be found in the tails of the distributions.
+
+## Predicted intervals
+
+This graphical tool directly compares the observations with the corresponding generated quantities' distribution, graphically summarised by the median and the 50% and 95% C.I.s, against a single predictor (in our case, `traps`:
+
+```{r}
+ppc_intervals(
+  y = stan_dat_hier$complaints,
+  yrep = y_rep,
+  x = stan_dat_hier$traps
+)
+```
+
+This graph is still indicative of a general goodness of fit of the model, at least at a coarse level (not checking every single building): there seems to be only and outlier (for `traps`=7), but that is acceptable since, on 120 data, we have only one point falling outside the 95% confidence interval; moreover, there seem to be only one point (for `traps`=4), clearly falling outside the 50% C.I.s.
+
+The same may be visualized at a finer grain, that is to say, for each building:
+
+```{r, fig.height=10}
+ppc_intervals_grouped(
+  y = stan_dat_hier$complaints,
+  yrep = y_rep,
+  x = stan_dat_hier$traps,
+  group = pest_data$building_id
+)
+```
+
+The representation may not be perfect because of the limited size for the figure, but we can notice that in all the buildings there seem not to be outliers, except for building number 70, which seems to have two of them, plus some borderline outliers in buildings 5, 26, 45. Note that the model was also, in the previous paragraph, culprit of poorly fitting data for building 70, as far as the proportion of zeros is concerned; anyway, there does not seem to be trends between the number of traps and outliers in the observations, which is the goal of this particular analysis.
+
+## Standardized residuals
+
+Eventually, we analyse the graph for the standardized residuals. This analysis is a bit of an extra w.r.t. the indications, because it doesn't use the `bayesplot` package:
+
+```{r}
+mean_y_rep <- colMeans(y_rep)
+mean_inv_phi <- mean(as.matrix(NB_hier_ncp_fit, pars = "inv_phi"))
+std_resid <- (stan_dat_hier$complaints - mean_y_rep) / sqrt(mean_y_rep + mean_y_rep^2*mean_inv_phi)
+qplot(mean_y_rep, std_resid) + hline_at(2) + hline_at(-2)
+```
+
+The thing that can be noted immediately is that there's an imbalancement in the distribution of the standardised residuals: the mass for the negative residuals is very concentrated between 0 and -1, and there're no std. residuals below -1; while the positive residuals are more scattered between 0 and 2, and there are, as well, 4 clear cut outliers. This enough should tell still that the models needs improvement, either by considering other variables, or by changing assumptions on either the likelihood or the priors.
+
+## Conclusion
+
+Overall, in our analysis we have noted that:
+
+* Our model, if we look at the pooled dataset, seems to fit very well our data, as the observations tend to fall outside the tail of the distribution of the replicated data;
+* Also, by summarizing the replicated data and the observations employing mean and proportion of zeros, we see that, not considering hierarchies, there's a good fit between observed summaries and replicated data summaries;
+* There doesn't seem to be a trend between _outlier observations_ (w.r.t. the replicated data) and the explanatory variable `traps`;
+* If we increase the level of details, however, we can see that, considering separately the various buildings, for the statistic 'proportion of zeros', the fit isn't optimal in some select buildings;
+* Also, by looking at the standardized residuals chart, we notice a strong skew of the distribution towards the positive end, while the distribution should be theoretically approximating a $N(0,1)$; moreover, outliers are present (5 over 120 observation) only in the positive end of the spectrum.

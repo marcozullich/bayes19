@@ -1,0 +1,550 @@
+---
+title: "Homework_02"
+author: "Marco Zullich"
+date: "18 April 2019"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# TH-1
+
+Given a M.C. with transition matrix
+
+$$
+P=
+\left[
+  \begin{matrix}
+    0.5 & 0.5 & 0 & 0 & 0 & 0 \\
+    0.25 & 0.5 & 0.25 & 0 & 0 & 0 \\
+    0 & 0.25 & 0.5 & 0.25 & 0 & 0 \\
+    0 & 0 & 0.25 & 0.5 & 0.25 & 0 \\
+    0 & 0 & 0 & 0.25 & 0.5 & 0.25 \\
+    0 & 0 & 0 & 0 & 0.5 & 0.5
+  \end{matrix}
+\right]
+$$
+Show that the stationary distribution $\pi$ is equal to $(0.1, 0.2, 0.2, 0.2, 0.2, 0.1)$.
+
+Since the stationary distribution is such that $\pi\cdot P = \pi$, we can express it as a linear system where the unknowns are the components of the vector $\pi$.
+That's to say:
+$$
+\begin{cases}
+  0.5 \cdot \pi_1 + 0.25 \cdot \pi_2 = \pi_1 \\
+  0.5\cdot \pi_1 + 0.5 \cdot \pi_2 + 0.25 \cdot \pi_3 = \pi_2 \\
+  0.25\cdot \pi_2 + 0.5\cdot\pi_3+0.25\cdot\pi_4 =  \pi_3 \\
+  0.25\cdot \pi_3 + 0.5\cdot\pi_4+0.25\cdot\pi_5 =  \pi_4 \\
+  0.25\cdot \pi_4 + 0.5 \cdot \pi_5 + 0.5 \cdot \pi_6 = \pi_5 \\
+  0.25 \cdot \pi_5 + 0.5 \cdot \pi_6 = \pi_6 
+\end{cases}
+$$
+By moving the unknowns to the right hand side of the equations:
+
+$$
+\begin{cases}
+  -0.5 \cdot \pi_1 + 0.25 \cdot \pi_2 = 0 \\
+  0.5\cdot \pi_1  -0.5 \cdot \pi_2 + 0.25 \cdot \pi_3 = 0 \\
+  0.25\cdot \pi_2 -0.5\cdot\pi_3+0.25\cdot\pi_4 = 0 \\
+  0.25\cdot \pi_3 -0.5\cdot\pi_4+0.25\cdot\pi_5 =  0 \\
+  0.25\cdot \pi_4 -0.5 \cdot \pi_5 + 0.5 \cdot \pi_6 = 0 \\
+  0.25 \cdot \pi_5 - 0.5 \cdot \pi_6 = 0 
+
+\end{cases}
+$$
+
+We may rewrite it as
+$$
+\overbrace{
+\left[
+  \begin{matrix}
+    -0.5 & 0.25 & 0 & 0 & 0 & 0 \\
+    0.5 & -0.5 & 0.25 & 0 & 0 & 0 \\
+    0 & 0.25 & -0.5 & 0.25 & 0 & 0 \\
+    0 & 0 & 0.25 & -0.5 & 0.25 & 0 \\
+    0 & 0 & 0 & 0.25 & -0.5 & 0.5 \\
+    0 & 0 & 0 & 0 & 0.25 & -0.5
+  \end{matrix}
+\right]
+}^{P^*}
+\cdot \pi = 0_6
+$$
+Where with $0_6$ we indicate the null vector with dimension 6.
+
+The system, though, is singular, we can easily check by calculating the determinant of $P^*$:
+```{r}
+P_star = matrix(c(-.5, .25, rep(0,4),
+                  .5, -.5, .25, rep(0,3),
+                  0, .25, -.5, .25, rep(0,2),
+                  rep(0,2), .25, -.5, .25, 0,
+                  rep(0,3), .25, -.5, .5,
+                  rep(0,4), .25, -.5), nrow = 6, byrow = T)
+det(P_star)
+```
+
+We may then replace the final equation of the system with the constraint
+$$
+||\pi||_1 = 1
+$$
+Were $||\cdot||_1$ denotes the L1 norm.
+
+The system then becomes
+$$
+\begin{cases}
+  -0.5 \cdot \pi_1 + 0.25 \cdot \pi_2 = 0 \\
+  0.5\cdot \pi_1  -0.5 \cdot \pi_2 + 0.25 \cdot \pi_3 = 0 \\
+  0.25\cdot \pi_2 -0.5\cdot\pi_3+0.25\cdot\pi_4 = 0 \\
+  0.25\cdot \pi_3 -0.5\cdot\pi_4+0.25\cdot\pi_5 =  0 \\
+  0.25\cdot \pi_4 -0.5 \cdot \pi_5 + 0.5 \cdot \pi_6 = 0 \\
+  \pi_1 + ... + \pi_6 = 1 
+\end{cases}
+$$
+Or, equivalently,
+$$
+\overbrace{
+\left[
+  \begin{matrix}
+    -0.5 & 0.25 & 0 & 0 & 0 & 0 \\
+    0.5 & -0.5 & 0.25 & 0 & 0 & 0 \\
+    0 & 0.25 & -0.5 & 0.25 & 0 & 0 \\
+    0 & 0 & 0.25 & -0.5 & 0.25 & 0 \\
+    0 & 0 & 0 & 0.25 & -0.5 & 0.5 \\
+    1 & 1 & 1 & 1 & 1 & 1  
+  \end{matrix}
+\right]
+}^{Q}
+\cdot
+\left[
+  \begin{matrix}
+      \pi_1 \\ \pi_2 \\ \pi_3 \\ \pi_4 \\ \pi_5 \\ \pi_6  
+  \end{matrix}
+\right]
+=
+\left[
+  \begin{matrix}
+    0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 1  
+  \end{matrix}
+\right]
+$$
+
+The system of equation can be easily solved using R:
+```{r}
+Q = matrix(c(-.5,.25,0,0,0,0,
+             .5,-.5,.25,0,0,0,
+             0,.25,-.5,.25,0,0,
+             0,0,.25,-.5,.25,0,
+             0,0,0,.25,-.5,.5,
+             1,1,1,1,1,1),
+           nrow = 6, ncol = 6, byrow = T)
+solve(Q, c(rep(0, 5),1))
+```
+
+Which is the solution, or, the stationary distribution to which our Markov Chain converges.
+
+# TH-2
+
+We are given the prior distributions for our parameters $\theta, N$:
+
+$$
+\theta \sim Beta(\alpha, \beta) \\
+N \sim Poi(\lambda)
+$$
+Since the number of seeded eggs (identified by the random variable $X$) models a situation in which we have a total number of eggs, each with equal and independent probability of being seeded, we can model it using a binomial distribution whose parameters are $N$ (number of total eggs deposited) and $\theta$ (probability of an egg being seeded). The binomial distribution is obtained only when those two parameters are fixed (hence are r.v. no more):
+
+$$
+X|N=n,\theta=t \sim Bi(N,t)
+$$
+This is the likelihood and it solves one point of the full conditionals search.
+
+To find the other two full conditionals, we'll need to write the posterior:
+
+$$
+\pi(N,\theta|X=x) \propto \overbrace{\frac{\theta^{\alpha-1}(1-\theta) ^{\beta-1}}{B(\alpha, \beta)}}^{Beta(\alpha,\beta)}
+\cdot 
+\overbrace{\frac{\lambda^N e^{-\lambda}}{N!}}^{Poi(\lambda)}
+\cdot
+\overbrace{\binom N x \theta^x (1-\theta)^{N-x} }^{\text{likelihood}}
+$$
+We can easily obtain the distribution of the full conditional for the parameter $\theta$ by removing from the posterior all terms not depending upon it:
+
+$$
+\pi(\theta|N=n,X=x) \propto \theta^{\alpha-1} (1-\theta) ^{\beta-1}\cdot \theta^x (1-\theta)^{n-x} \propto \theta^{\alpha+x-1} (1-\theta)^{n+\beta-x-1}
+$$
+Which is the kernel for a $Beta(\alpha+x, n+\beta-1)$.
+
+For the final full conditional, instead, we have that:
+
+$$
+  \pi(N|\theta = t, X = x) = \binom{N}{x} \frac{\lambda^N}{N!} \cdot (1-t)^{N-x} = \frac{{N!}}{x!(N-x)!} \frac{\lambda^N}{{N!}}(1-t)^{N-x} \propto \frac{\lambda^N \lambda^{-x}}{(N-x)!}(1-t)^{N-x} \\ \propto \frac{[\lambda(1-t)]^{N-x}}{(N-x)!}e^{-\lambda} \Longrightarrow N-x|(\theta=t\wedge X=x) \sim Poisson(\lambda(1-t))
+$$
+
+
+Before applying the Gibbs sampler, we need to specify a value for our coefficients $\alpha, \ \beta,\ \lambda$.
+
+We might say, for example, that:
+
+$$
+\lambda=5 \ \longrightarrow N\sim Poi(5) \\
+\alpha=2, \beta=6 \longrightarrow \theta \sim Beta(2,6)
+$$
+Graphical representation of the prior:
+
+```{r}
+plot(1:12,dpois(1:12,5), type='h', xlab="x", ylab="p(x)", main="Poisson prior for N")
+points(1:12,dpois(1:12,5), pch=16)
+curve(dbeta(x,2,6), xlab="x", ylab="p(x)", main=expression(paste("Beta prior for ",theta)))
+```
+
+Now we can then code our Gibbs sampler:
+
+```{r}
+
+gibbs = function(nsim){
+  #intialization of vectors to store solution
+  x = rep(0, nsim)
+  theta = rep(0, nsim)
+  n = rep(0, nsim)
+  
+  #initialization of parameters
+  #x starts at 0
+  theta[1] = .25
+  n[1] = 5
+  
+  #main cycle
+  for(s in 2:nsim){
+    #use previous value of n, theta to obtain current x
+    x[s] = rbinom(1, n[s-1], theta[s-1])
+    #use current x, previous n to obtain current theta
+    theta[s] = rbeta(1,2+x[s],6+n[s-1]-x[s])
+    #use both current x, theta to obtain current n
+    #since we know full contidional on N-x, get N-x then sum current x
+    n[s] = rpois(1,5*(1-theta[s])) + x[s]
+  }
+  
+  return(list(x=x, theta=theta, n=n))
+  
+}
+```
+
+and run it:
+```{r}
+set.seed(0) #to ensure reproducibility
+params = gibbs(10000)
+```
+
+We may now plot the simulated distribution of x:
+```{r}
+x=params$x
+plot(table(x)/length(x), type="h", lwd=2, col="cyan", main="Distribution of X obtained with Gibbs sampling", ylab="p(x)")
+points(0:max(x),table(x)/length(x), pch=16, col="blue4")
+```
+
+
+$X$ is a compound distribution depending upon two other random variables which are $N$ and $\theta$.
+
+$X|\theta=t,N=n$ is a binomial distribution with parameters $n,t$, hence its mean is $nt$; the mean of $X$ is the same of the conditioned form, where $n$ and $t$ are replaced by $E(N), E(\theta)$:
+
+$$
+E(X)=E(N)\cdot E(\theta)
+$$
+
+The mean for our simulated `x` is:
+```{r}
+mean(x)
+```
+
+While the theoretical value is
+```{r}
+mean(params$n)*mean(params$theta)
+```
+
+The two values are pretty close to each other.
+
+The variance for compound r.v.'s is higher than the variance of the conditioned r.v.:
+$$
+V(X) = E[V(X|N=n,\theta=t)] + V[E(N,\theta)] = E(N)\cdot E(\theta)\cdot (1-E(\theta)) + V(N\theta)
+$$
+```{r}
+var(x)
+```
+
+
+```{r}
+mean(params$n)*mean(params$theta)*(1-mean(params$theta)) + var(params$theta*params$n)
+```
+
+Also here, the values are close, but not as close as for the mean. This may be due to the fact that the MCMC simulations is not a fully independent process and variance value is inflated w.r.t. the theoretical result. Applying burn-in and tinning may help in reducing the gap.
+
+## Verify that the simulated conditional distribution of $\theta$ given $N=\hat{n}$ and $X=\hat{x}$, where $\hat{n}$ and $\hat{x}$ are posterior estimates, corresponds with the theoretical one
+
+```{r}
+hist(params$theta, breaks=100, prob=T, xlab=expression(theta), ylim=c(0,3.5))
+curve(dbeta(x,2,6),add=T,col="blue")
+```
+
+
+# MCR-1
+
+## Re-create graphs from Figure 6.7 (page 184)
+
+First, we need to create the Metropolis-Hastings routine for the example (estimate a $N(0,1)$ where the proposal will be generated by offsetting the previous value of the chain by a random value drawn from a $U(-\delta,\delta)$, where $\delta$ is a hyperparameter. 
+
+```{r}
+metro_hastings_N_unif = function(nsim, delta){
+  x = rep(0, nsim)
+  acc_values = 1
+  
+  #Let initlialization value be 0.
+  
+  for(s in 2:nsim){
+    proposal = x[s-1] + runif(1, -delta, delta)
+    accept_prob = min(1, exp((x[s-1]^2-proposal^2)/2))
+    u = runif(1)
+    if(u<accept_prob){
+      x[s] = proposal
+      acc_values = acc_values + 1
+    }else{
+      x[s] = x[s-1]
+    }
+  }
+  
+  acc_rate = acc_values/nsim
+  
+  return(list(x=x, acc_rate=acc_rate))
+}
+```
+
+The `nsim` (number of simulations) is fixed at 5000, we reproduce the example by using three values for $delta$: 0.1, 1, 10:
+
+```{r}
+set.seed(100)
+nsim = 5000
+simulations = list(
+  sim1 = metro_hastings_N_unif(nsim, .1),
+  sim2 = metro_hastings_N_unif(nsim, 1),
+  sim3 = metro_hastings_N_unif(nsim, 10)
+)
+```
+
+Then we can reproduce the plot from the book. For sake of readability, we'll produce them in triplets instead of all-at-once.
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#traceplots - only last 500 iterations (like in book)
+for(i in 1:3)
+   plot(simulations[[i]]$x[4500:5000], type='l', ylab = paste0("delta = 10e",i-2), ylim=c(-3,3))
+```
+
+Note: in order to better compare the three chains, we fixed the `ylim` attribute within `plot`: from here we can see how little exploration the first chain ($\delta=0.1$); the last chain ($\delta=10$) instead does a lot of exploitation (many horizontal lines in the graph, which implies that the acceptance rate is very low). Those issues may be better understood within the histograms below:
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#histograms
+for(i in 1:3){
+  hist(simulations[[i]]$x, breaks=100, main="", probability = T, ylab = paste0("Density with delta = 10e",i-2), xlim = c(-4,4), xlab = "x")
+  lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+}
+
+```
+
+We see here how the only histograms which fits well a $N(0,1)$ is the central one (chain with $\delta=1$): the first one explores too little and is missing badly the left tail of the gaussian curve; the last one, instead, due to expoliting too many values, has many lone spikes located all around the x-axis which cause a very bad fit, the most problematic one being left of the mode ($x \approx -1$).
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#autocorrelation
+for(i in 1:3)
+  acf(simulations[[i]]$x, ylab=paste0("Autocorrelation for delta=10e",i-2), main="")
+```
+
+Sticking to autocovariance, we'll repeat the simulations, this time exploring for other values of $\delta$. Given that 0.1 represents a very bad choice (see chart above), we'll start with values closer to 1:
+
+```{r}
+set.seed(100)
+deltas = seq(.5, 5, .5)
+simluations2 = matrix(0, nrow=nsim, ncol=length(deltas))
+for(d in 1:length(deltas)){
+  simluations2[,d] = metro_hastings_N_unif(nsim, d)$x
+}
+```
+
+```{r, fig.height=5, fig.width=5}
+#par(mfrow=c(5,2))
+for(i in 1:length(deltas))
+  acf(simluations2[,i], ylab=paste0("delta=",deltas[i]), main="")
+```
+
+It seems that the best choice of $\delta$ in terms of autocovariance is given by values aroud 2 and 3.5: the latter has a faster decay, but we see a high negative autocorrelation for higher values of lag; the former instead decays more slowly, but after it has decayed, we see that autocorrelation stays minimal. For values above 3, we have again an increase in autocorrelation.
+
+## Use Cauchy and Laplace candidates
+
+We generalize a little bit the Metropolis-Hastings algorithm in order to accept generic distributions as proposal: we'll allow to pass a generator into the M-H function:
+
+```{r}
+#distr_sim -> like rnorm, rcauchy etc...
+metro_hastings_randomwalk = function(nsim, distr_sim){
+  x = rep(0, nsim)
+  
+  #Let initlialization value be 0.
+  
+  acc_values = 1
+  
+  for(s in 2:nsim){
+    proposal = x[s-1] + distr_sim(1)
+    accept_prob = min(1, exp((x[s-1]^2-proposal^2)/2))
+    u = runif(1)
+    if(u<accept_prob){
+      acc_values = acc_values + 1
+      x[s] = proposal
+    }else{
+      x[s] = x[s-1]
+    }
+  }
+  
+  acc_rate = acc_values/nsim
+  
+  return(list(x=x, acc_rate=acc_rate))
+}
+```
+
+We can then proceed to simulations:
+
+```{r}
+set.seed(100)
+chain_cauchy = metro_hastings_randomwalk(nsim, rcauchy)
+chain_laplace = metro_hastings_randomwalk(nsim, rmutil::rlaplace)
+```
+
+We may then plot the traceplot and the histograms:
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#traceplots - only last 500 iterations (like in book)
+plot(simulations[[2]]$x[4500:5000], type='l', ylab = paste0("Unif. delta = 10e",i-2), ylim=c(-3,3))
+plot(chain_cauchy$x[4500:5000], type='l', ylab = "Cauchy")
+plot(chain_laplace$x[4500:5000], type='l', ylab = "Laplace")
+```
+
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#histograms
+
+hist(simulations[[2]]$x, breaks=100, main="", probability = T, ylab = paste0("Uniform"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+hist(chain_cauchy$x, breaks=100, main="", probability = T, ylab = paste0("Cauchy"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+hist(chain_laplace$x, breaks=100, main="", probability = T, ylab = paste0("Laplace"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+
+```
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+#autocorrelation
+acf(simulations[[2]]$x, ylab = "Uniform", main ="")
+acf(chain_cauchy$x, ylab = "Cauchy", main="")
+acf(chain_laplace$x, ylab = "Laplace", main="")
+
+```
+
+What we can immediately see is that all three chains show good fit, and all of them show sings of convergence. From the traceplots, all three chains show a good dose of exploration of the space, albeit the Laplace histogram is maybe a bit too concentrated around 0 with spikes too high. In terms of autocorrelation, the Laplace chain seems to fare much better than the other two.
+
+Let us have a look at the acceptance rate:
+```{r}
+print(simulations[[2]]$acc_rate)
+print(chain_cauchy$acc_rate)
+print(chain_laplace$acc_rate)
+```
+
+
+In order to lower it, we must play with the parameters (note that we explore for different ranges of parameter which were found to be optimal for previous tries):
+
+```{r}
+set.seed(1)
+chains_unif = list()
+chains_cauchy = list()
+chains_laplace = list()
+acc_rates = matrix(NA,nrow=50,ncol=3)
+
+
+
+for(i in 1:50){
+  ## delta ranges from .2 to 10.0
+  chains_unif[[i]] = metro_hastings_N_unif(nsim, i/5)
+  acc_rates[i,1] = chains_unif[[i]]$acc_rate
+  
+  ##scale for cauchy ranges from .1 to 5.0
+  chains_cauchy[[i]] = metro_hastings_randomwalk(nsim, function(x) rcauchy(x,scale=i/10))
+  acc_rates[i,2] = chains_cauchy[[i]]$acc_rate
+  
+  ##s for laplace ranges from .2 to 10.0
+  chains_laplace[[i]] = metro_hastings_randomwalk(nsim, function(x) rmutil::rlaplace(x,s=i/5))
+  acc_rates[i,3] = chains_laplace[[i]]$acc_rate
+}
+
+acc_rates
+```
+
+We see that optimal values are reached when:
+
+* $\delta$ for the uniform is equal to 6.4 (index of iteration 32)
+* the dispersion parameter for the Cauchy is 3.3 (index of iteration 33)
+* the dispersion parameter for the Laplace is 5.2 (index of iteration 26)
+
+Next, we can plot our optimal chains as far as acceptance rate is concerned:
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+#traceplot
+plot(chains_unif[[32]]$x[4500:5000], type='l', ylab = paste0("Uniform delta = 6.4"), ylim=c(-3,3))
+
+#histogram
+hist(chains_unif[[32]]$x, breaks=100, main="", probability = T, ylab = paste0("Uniform delta = 6.4"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+#acf
+acf(chains_unif[[32]]$x, main="")
+
+```
+
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+plot(chains_cauchy[[33]]$x[4500:5000], type='l', ylab = paste0("Cauchy s = 3.3"), ylim=c(-3,3))
+
+hist(chains_cauchy[[33]]$x, breaks=100, main="", probability = T, ylab = paste0("Cauchy s = 3.3"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+acf(chains_cauchy[[33]]$x, main="")
+
+```
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,3))
+
+plot(chains_laplace[[26]]$x[4500:5000], type='l', ylab = paste0("Cauchy s = 3.4"), ylim=c(-3,3))
+
+hist(chains_laplace[[26]]$x, breaks=100, main="", probability = T, ylab = paste0("Cauchy s = 3.4"), xlab = "x")
+lines(seq(-4,4, by=0.01), dnorm(seq(-4,4, by=0.01)),type="l", col="red", lwd=2)
+
+acf(chains_laplace[[26]]$x, main="")
+
+```
+
+We note that those choices nor show a good fit to the $N(0,1)$ distribution, neither seem perfect in terms of autocorrelation:
+
+* the Uniform one has a $\delta$ close to the optimal one we found before
+* the Cauchy one fares much better than its *vanilla* form
+* the Laplace one has a worse result than before, showing a spike for a lag around 20-25

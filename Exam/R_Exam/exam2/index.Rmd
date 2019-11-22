@@ -1,0 +1,1011 @@
+--- 
+title: "Exam project"
+author: "Marco Zullich"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+documentclass: book
+---
+
+# Prerequisites
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(rstan)
+library(bayesplot)
+
+data = mlmRev::ScotsSec
+```
+
+# Problem specification
+
+```
+The R package mlmRev contains the ScotsSec dataset on scores attained by Scottish
+secondary school students on a standardized test taken at age 16.
+The data include 3,435 observations on 6 variables. The help file
+description is as follows:
+
+    * verbal The verbal reasoning score on a test taken by the students on entry
+      to secondary school
+    * attain The score attained on the standardized test taken at age 16
+    * primary A factor indicating the primary school that the student attended
+    * sex A factor with levels M and F
+    * social The student’s social class on a numeric scale from low to high social
+      class
+    * second A factor indicating the secondary school that the student attended
+
+After performing some explorative analyses:
+
+    1. Consider the binary variable attain01 which takes values 1 if attain is greater
+       than 5 and 0 otherwise. Build a model for studying the effects of covariates on
+       attain01 with rstan, taking into account the hierarchical structure of the data.
+    2. Check the model fit and comment the results.
+    3. Draw inference on school random effects. Does the primary school matter?
+    4. [optional] Propose an alternative model for the variable attain
+       (stan fit is not required).
+
+```
+
+# Preliminary analysis
+
+## Univariate analysis
+
+As usually done on preliminary analysis, the first thing we want to do is establishing the types of the variables: 
+
+```{r}
+inspectdf::inspect_types(data)
+```
+
+We have 3 categorial and 3 numerical variables.
+
+### Numerical variables
+
+First we'll analyze the numerical ones:
+```{r}
+data_inspect_num = inspectdf::inspect_num(data)
+data_inspect_num %>% select(-hist)
+```
+
+```{r}
+data_inspect_num %>% inspectdf::show_plot()
+```
+
+We see that the only variable which seems to have an approximately continuous distribution is `verbal`.
+
+The variable `attain`, which will be our response, show a very imbalanced bimodal discrete distribution, with peaks around 2 and 10.
+
+`social`, instead, despite seemingly having a large support, has appearantly only have few values:
+```{r}
+data$social %>% table
+```
+
+### Categorical variables
+
+Next, we analyze the factors:
+```{r}
+inspectdf::inspect_cat(data) %>% inspectdf::show_plot()
+```
+From the plot above we can see that:
+
+* The `primary` variable has a huge support (148 categories) and there seems not to be a prevalent school between them, although there're primary schools with very little representation.
+
+    ```{r}
+data %>% group_by(primary) %>% summarise(n=n()) %>% select(primary,n) %>%
+    mutate(size=ifelse(n<10,"small",ifelse(n>50,"large","medium"))) %>%
+    pull(size) %>% table
+    ```
+  As we can see, 43 primary schools are represented by 10 students or less.
+
+* The `second` variable seems to have a very uniform distribution as well: we have 19 secondary schools in which the test is submitted to students
+    ```{r}
+    data %>% group_by(second) %>% summarise(n=n()) %>%
+      filter(n==max(n) | n==min(n))
+    ```
+  The school 10 (smallest one) has 92 students, while the school 14 (biggest one) has 290.
+
+* The students are equally distributed between females and males
+
+Finally, as per request point 1, we have to recode the variable `attain` into `attain01` which is an indicator for the score test being higher than 5:
+```{r}
+data = data %>%
+  mutate(attain01=cut(attain,breaks=c(-Inf,5,Inf),labels=c(0,1)))
+
+ggplot(data, aes(x=attain01)) + geom_bar(fill='orange')
+```
+
+We see that the two classes are balanced (around 1750 students in class 0, 1600 in class 1).
+
+### Missing values
+
+We can easily test for missing values with `inspect_na` of the `inspectdf` package.
+
+```{r}
+inspectdf::inspect_na(data)
+```
+
+We have no missing values.
+
+## Bivariate analysis
+
+Before starting on with the bayesian modelling, it's a nice practice to check for correlation between the variables in the dataset.
+
+### `attain` and `verbal` {#firstbiv}
+
+The first correlation I'll check is `attain01` vs. `verbal`. Since the former is a dichotomic variable, and the latter is approximately continuous, I'll fit a frequentist logistic regression to check:
+
+```{r firstglm}
+glm(attain01~verbal, data=data, family=binomial) %>% summary
+```
+
+The coefficient for `verbal` is positive and significative, yet not huge: that suggests a small positive correlation between the score obtained during the secondary school's entrance test and the test whose scores are being analyzed now. This can be appreciated in the plots below:
+
+```{r box_attain_verb}
+ggplot(data=data, aes(y=verbal, x=attain01, fill=attain01)) +
+  geom_boxplot() +
+  ggtitle("Distribution of `verbal` given `attain01`")
+```
+
+Especially from the boxplot above, we can see that the distributions of `verbal` given `attain01` are different, and that the central 50% of the distribution lie on separate portions of the space of `verbal`.
+
+Those observations might lay the foundations for the models we're going to construct in the next sections.
+
+```{r, echo = F}
+plot(data$attain01 %>% as.character %>% as.numeric ~ data$verbal,
+     xlab = "verbal",
+     ylab = "attain01",
+     pch = 18,
+     yaxt = "n",
+     col = "darkgray")
+curve(exp(.2+.16*x)/(1+exp(.2+.16*x)), add=T, col="red")
+
+```
+
+
+### `attain` and `sex`
+
+First I create a contingency table, from which we can appreciate a difference in distribution of `attain01` for different sex groups:
+
+```{r, warning=FALSE}
+contmatr = data %>%
+  group_by(sex, attain01) %>%
+   summarise(n = n()) %>%
+   spread(attain01, n) %>% 
+   magrittr::set_rownames(.$sex) %>%
+   ungroup() %>%
+   select(-sex) %>%
+   as.matrix
+
+make_cont_table = function(x){
+  rbind(
+  cbind(x,apply(x,MARGIN = 1, FUN = sum) %>%
+                  matrix(ncol = 1)),
+  c(apply(x,MARGIN = 2, FUN = sum),
+    1))
+}
+
+make_cont_table(contmatr / sum(contmatr))
+                  
+```
+
+These two plots help better visualize the disparity:
+
+```{r mosaic_attain_sex}
+vcd::mosaic(contmatr, shade=T, legend=F,
+            main = 'Joint distribution of `attain01` and `sex`',
+            labeling_args = 
+              list(set_varnames = c(A="sex", B="attain01")))
+
+```
+
+```{r}
+ggplot(data, aes(x=attain01, fill=sex)) + 
+  geom_bar() +
+  ggtitle("Distribuion of `attain01` given `sex`")
+```
+
+From the charts above, there seems to be a disparity in results depending upon the gender: females seem to have fared better than men, despite the marginal distribution of `sex` being almost uniform 
+
+
+### `attain` and social category
+
+First, I recode the variable `social` into a factor with three determinations:
+
+```{r}
+data = data %>% mutate(social_cat = cut(
+          social, c(-Inf,2,21,Inf), labels=c('low','middle','high')
+        ))
+```
+
+Then, I analize it in similar fashion as the previous paragraph:
+
+
+```{r, warning=FALSE}
+contmatr = data %>%
+  group_by(social_cat, attain01) %>%
+   summarise(n = n()) %>%
+   spread(attain01, n) %>% 
+   magrittr::set_rownames(.$social_cat) %>%
+   ungroup() %>%
+   select(-social_cat) %>%
+   as.matrix
+
+
+make_cont_table(contmatr/sum(contmatr))
+```
+
+Charts:
+
+```{r}
+vcd::mosaic(contmatr, shade=T, legend=F,
+            main = 'Joint distribution of `attain01` and social category',
+            labeling_args = 
+              list(set_varnames = c(A="social category", B="attain01")))
+
+```
+
+It seems that:
+
+* there's a large disparity between results between low and medium/high class students: the former performed poorly (around 60% got a mark below 5), while the latter performed better (35% of middle/high class got a mark below 5).
+* however, there seems to be a small difference between middle and high class students, since the middle class overall performed better than high class ones, at least in getting at least a sufficient mark in the test.
+
+#### Other considerations
+
+Adding other variables to the boxplot in \@ref(box_attain_verb), we see that:
+
+* `sex` doesn't change much the distribution:
+
+    ```{r}
+    ggplot(data=data, aes(y=verbal, x=attain01, fill=sex)) +
+      geom_boxplot() +
+      ggtitle("Distribution of `verbal` given `attain01` and `sex`")
+    ```
+
+    That probably indicates that the correlation noted in \@(mosaic_attain_sex) may be (almost) fully explained by `verbal`, and the addition of sex to a model already containing `verbal` as predictor might not bring significative results.
+    
+    ```{r}
+    glm(attain01~sex+verbal, data=data, family=binomial) %>%
+      summary()
+    ```
+    
+    There seems not to be a substantial difference in effect on `attain01` for males or females.
+
+* adding the social category may be useful:
+
+    ```{r}
+    ggplot(data=data, aes(y=verbal, x=attain01, fill=social_cat)) +
+          geom_boxplot() +
+          ggtitle("Distribution of `verbal` given `attain01` and social category") +
+      scale_fill_brewer(palette=5)
+    
+    ```
+
+    ```{r}
+    glm(attain01~social_cat+verbal, data=data, family=binomial) %>%
+      summary()
+    ```
+    
+    It seems that the social category adds something to the relationship between `atttain01` and `verbal`.
+
+### `attain` and secondary school
+
+```{r}
+ggplot(data %>% select(attain01, second) %>% group_by_all %>%
+         summarise(n = n()) %>%
+         inner_join(data %>% select(second) %>%
+                      group_by(second) %>%
+                      summarise(stud = n())) %>%
+         mutate(prop = n/stud),
+       aes(x=second, fill=attain01)) + 
+  geom_bar(aes(y=prop), position="stack", stat="identity") +
+  ggtitle("Proportion of `attain01` for each secondary school")
+```
+
+There proportions of 0s and 1s in test sufficiency are etherogeneous across the schools: in school 19 only ~20% of students got more than 5 as a score, while in school 12 ~60% of student achieved this result. 
+
+### social composition for primary schools
+
+```{r}
+ggplot(data %>%
+         select(second, social_cat) %>% group_by_all %>%
+         summarise(n = n()) %>%
+         inner_join(data %>% select(second) %>%
+                      group_by_all %>%
+                      summarise(stud = n())) %>%
+         mutate(prop = n/stud),
+       aes(x=second)) + 
+  geom_bar(aes(y=prop, fill=social_cat), position="stack", stat="identity") +
+  ggtitle("Proportion of students from social classes for each secondary school") 
+  
+  
+```
+
+```{r}
+data %>% filter(second == 19) %>% group_by(social_cat) %>% summarise(n=n())
+```
+
+
+### attain and primary school
+
+```{r}
+
+ggplot(data %>% select(primary, attain01) %>% group_by_all %>%
+         summarise(n = n()) %>%
+         inner_join(data %>% select(primary) %>%
+                      group_by_all %>%
+                      summarise(stud = n())) %>%
+         mutate(prop = n/stud) ,
+       aes(x=primary, fill=attain01)) + 
+  geom_bar(aes(y=prop), position="stack", stat="identity") +
+  ggtitle("Proportion of test results for each primary school") +
+  theme(axis.text.x = element_blank()) 
+```
+
+# Bayesian modelling
+
+## `attain01` ~ `verbal`
+
+As first mentioned before, the first model I'll try to fit will be `attain01` ~ `verbal`.
+
+I have already proven, in a frequentist framework, in \@ref(firstbiv), that there exists a correlation between the two variables.
+This will be tested in a bayesian framework.
+
+`attain01` is a dichotomic variable, hence the model that I'll fit is a logistic regression (with canonical link). I'll also pick a vague prior on the coefficients: being the sample size large, in all chances the likelihood will largely dominate on the prior.
+
+This is the model specification:
+
+$$
+\text{attain01}_i \sim Bernoulli(\text{logit}^{-1}(\eta_i)) \\
+\eta_i = \alpha + \beta \cdot \text{verbal}_i \\
+\alpha \sim N(0,10) \\
+\beta \sim N(0,2.5)
+$$
+
+Note that the priors for $\alpha, \beta$ have been chosen as the default for `stan_glm` of `rstanarm` package.
+
+Model compile:
+```{r, cache=T}
+model_lin_1 = stan_model('models/stan_model_glm_1.stan')
+```
+ 
+and fit:
+```{r, eval=F}
+fit_lin_1 = sampling(model_lin_1,
+                     data = list(N = data %>% nrow,
+                                 x = data$verbal,
+                                 y = data$attain01 %>%
+                                   as.character %>%
+                                   as.numeric),
+                     cores = 4)
+
+saveRDS(fit_lin_1, "models/fit_lin_1.rds")
+```
+
+```{r, echo=F, cache=T, results='hide'}
+fit_lin_1 = readRDS("models/fit_lin_1.rds")
+```
+
+
+
+### Coefficients analyisis
+
+These are the coefficients estimated by the model:
+```{r}
+print(fit_lin_1, pars = c("alpha","beta"))
+```
+
+As expected, the coefficients have the same mean as the frequentist glm's estimate (see \@ref(firstbiv)). Both have 0 well outside their 95% C.I.
+
+The interpretation of $\beta$ does not change: it has a positive effect on determining the sufficiency in the test; for a unitary increase in `verbal`, there's an increase of .16 in the linear predictor, or in the log-odds of the probability of success.
+
+### Posterior predictive checks
+
+First, I'm going to have a look at the fit of the mass function of the replicated data to the original y:
+
+```{r}
+y = data$attain01 %>% as.character %>% as.numeric
+y_rep = as.matrix(fit_lin_1, pars = "y_rep")
+
+ppc_ecdf_overlay(y,y_rep,discrete = T)
+```
+
+A check can be done on the bernoulli's parameter $\theta$, which in our model is, on average $\text{logit}^{-1}(\alpha+x*\beta)$.
+
+Being our observed and replicated data just vectors of 0s and 1s, the parameter in an observed or replicated array is the mean of the values of such array.
+
+```{r}
+ppc_stat(y,y_rep)
+```
+
+The fit is excellent also considering the parameter.
+
+To have an estimate for residuals, I'll calcuate the Brier Score on the model:
+
+```{r}
+hist_fun = function(y, y_rep, fun){
+  
+  
+  vals = y_rep %>% apply(1,function(x) fun(y, x) )
+  
+  print(paste0("average statistic = ",mean(vals)))
+  print(paste0("sd = ",sd(vals)))
+  
+  return (ggplot(data = vals %>% as_tibble, aes(x=value)) +
+    geom_histogram(aes(y=..density..),  fill = "orange") +
+    geom_density() +
+    xlab ( as.character(substitute(fun)) ) )
+}
+
+(brier_1 = hist_fun(y, y_rep, DescTools::BrierScore))
+```
+
+An average value of 0.28 indicates a moderate fit.
+
+
+```{r}
+(loo_1 = loo::loo(loo::extract_log_lik(fit_lin_1)))
+```
+
+## Hierarchical models
+
+I provide two generic `stan` models for the following sections:
+
+```{r}
+model_lin_hier_interc = stan_model('models/stan_model_glm_2.stan', auto_write = T)
+
+model_lin_hier_both = stan_model('models/stan_model_glm_3.stan', auto_write = T)
+
+model_lin_hier_interc_s = stan_model("models/stan_model_glm_2_pri_strong.stan")
+```
+
+### Hierarchy over social category
+
+```{r, eval=F}
+fit_lin_hier_soc_interc = sampling(model_lin_hier_interc, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$social_cat%>%levels%>%length,
+               group_mapping = data %>% pull(social_cat) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_soc_interc, "models/fit_lin_soc.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_soc_interc = readRDS("models/fit_lin_soc.rds")
+```
+
+
+```{r}
+mcmc_intervals(as.matrix(fit_lin_hier_soc_interc), pars = 
+                 dimnames(fit_lin_hier_soc_interc)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+As expected, there're different values of $\alpha$ for medium and high class. $\beta$ is still significative with a very precise posterior.
+
+```{r}
+ppc_stat_grouped(y, yrep = as.matrix(fit_lin_hier_soc_interc,
+                                    pars = "y_rep"),
+                 group = data$social_cat)
+```
+
+```{r}
+ppc_stat_grouped(y, yrep = as.matrix(fit_lin_hier_soc_interc,
+                                    pars = "y_rep"),
+                 group = data$social_cat, stat = sd)
+```
+
+
+```{r}
+hist_fun(y, as.matrix(fit_lin_hier_soc_interc,
+                                    pars = "y_rep"),
+         DescTools::BrierScore)
+```
+
+
+
+
+```{r}
+(loo_soc=loo::loo(loo::extract_log_lik(fit_lin_hier_soc_interc)))
+```
+
+
+#### Model with variable intercept and slope
+
+To improve the result of the hierarchical model, I'll be fitting a model with variable intercept and slope over the same hierachy.
+
+
+```{r linHierSexSoc, eval=F}
+fit_lin_hier_soc_both = sampling(model_lin_hier_both, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$social_cat%>%levels%>%length,
+               group_mapping = data %>% pull(social_cat) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_soc_both, "models/fit_lin_4.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_soc_both = readRDS("models/fit_lin_4.rds")
+```
+
+```{r}
+mcmc_intervals(as.matrix(fit_lin_hier_soc_both), pars = 
+                 dimnames(fit_lin_hier_soc_both)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+The model doesn't seem to add up to what we've seen before, because the $\beta$s have all a very similar posterior distribution. I'll have a look at the Brier score as a last check:
+
+```{r}
+(loo_soc_both=loo::loo(loo::extract_log_lik(fit_lin_hier_soc_both)))
+```
+
+### Hierarchy over primary school
+
+#### Model with variable intercept, fixed slope
+
+Having seen that the previous hierarchy did not offer much contribution to the model, I decided to change the hierarchical structure, focusing on the primary school of origin.
+
+This model will begin in trying to answer to the request nr. 3:
+```
+Draw inference on school random effects. Does the primary school matter?
+```
+
+The model will be a hierarchical bayesian logistic regression with a random effect for the primary school:
+
+```{r, eval=F}
+fit_lin_hier_pri_interc = sampling(model_lin_hier_interc, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$primary%>%levels%>%length,
+               group_mapping = data %>% pull(primary) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_pri_interc, "models/fit_lin_2.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_pri_interc = readRDS("models/fit_lin_2.rds")
+```
+
+Let's analyze the posterior in an automated fashion:
+
+```{r}
+fit_lin_sum = summary(fit_lin_hier_pri_interc)
+fit_lin_sum = fit_lin_sum$summary %>%
+  as_tibble %>%
+  tibble::add_column(param = fit_lin_sum$summary %>% row.names) %>% select(param, everything())
+```
+
+* $\beta$
+
+    ```{r}
+    fit_lin_sum %>% filter(param == 'beta')
+    ``` 
+
+    The mean is very close to the non-hierarchical model ($\Delta \pm 0.02$), and 0 is well outside the 95% CI.
+
+* Intercepts
+
+    Instead of printing directly the intercepts' posteriors, I'll store them in a data frame and make considerations on the 95% CI via `dplyr`.
+    
+    First, I create the dataframe and add a new variable telling me whether 0 is or is not within the 95% CI of each parameter:
+
+    ```{r}
+    fit_lin_sum_alphas = fit_lin_sum %>%
+      filter(grepl('alpha',param)) %>% 
+      mutate(sign = ifelse(`97.5%`*`2.5%`<0, "NoSign", "Sign"))
+    ```
+
+    Then, I group by the new variable to see how many school have a significative $\alpha$ parameter:
+    
+    ```{r}  
+    fit_lin_sum_alphas %>% select(sign) %>% group_by(sign) %>%
+      summarise(n=n())
+    ```
+
+    Out of 148 primary schools, only 25 schools show to have somewhat an effect on the score.
+    
+    These are such schools:
+
+    ```{r}
+    fit_lin_sum_alphas %>% filter(sign == 'Sign')
+    ```
+
+    ```{r}
+    mcmc_intervals(as.array(fit_lin_hier_pri_interc), pars =
+                     fit_lin_sum_alphas %>%
+                     filter(sign == 'Sign') %>%
+                     pull(param))
+    ```
+
+Analysis on some schools:
+    
+```{r}
+data %>% filter(primary %in% c(3, 139, 69, 49)) %>%
+  group_by(primary, attain01) %>% summarise(n=n())
+```
+
+
+The Brier score:
+
+```{r}
+hist_fun(data$attain01%>%as.character%>%as.numeric,
+         as.matrix(fit_lin_hier_pri_interc, pars = "y_rep"),
+         DescTools::BrierScore)
+```
+
+The model improves the Brier Score (ca 0.25 vs 0.28 for the non-hierarchical model): however, we can see that this improvement seems significative:
+
+```{r, echo=F}
+ggplot() +
+  geom_histogram(data = y_rep %>% apply(1,function(x)
+    DescTools::BrierScore(y, x)  ) %>% as_tibble ,
+    aes(x=value,y=..density.., fill='blue') , alpha=.3) + 
+  geom_histogram(data = as.matrix(fit_lin_hier_pri_interc, pars = "y_rep")  %>% apply(1,function(x)
+    DescTools::BrierScore(data$attain01%>%as.character%>%as.numeric, x)  ) %>% as_tibble,
+                 aes(x=value,y=..density.., fill='orange') , alpha=.3) + 
+  scale_fill_discrete(name = 'Model',
+                      labels = c("pooled", "hier. prim."))
+```
+
+This is not though confirmed by the LOOIC:
+
+```{r}
+(loo_pri=loo::loo(loo::extract_log_lik(fit_lin_hier_pri_interc)))
+```
+
+```{r}
+loo_soc
+```
+
+```{r}
+loo_1
+```
+
+Since the LOOIC operates on the predictive level, it's possible that a model showing increased goodness of fit but decreased LOOIC may be overfitting the data.
+
+#### Stronger priors
+
+Fit a new model with stronger priors:
+
+$$
+\alpha \sim N(0.2,1) \\
+\beta \sim N(0,1)
+$$
+
+```{r, eval=F}
+fit_lin_hier_pri_interc_s = sampling(model_lin_hier_interc_s, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$primary%>%levels%>%length,
+               group_mapping = data %>% pull(primary) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_pri_interc_s, "models/fit_lin_2s.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_pri_interc_s = readRDS("models/fit_lin_2s.rds")
+```
+
+
+* Analysis on $\alpha$s:
+
+    ```{r, cache=T}
+    fit_lin_sum = summary(fit_lin_hier_pri_interc_s)
+    fit_lin_sum = fit_lin_sum$summary %>%
+      as_tibble %>%
+      tibble::add_column(param = fit_lin_sum$summary %>% row.names) %>% select(param, everything())
+    ```
+
+    ```{r}
+    fit_lin_sum = fit_lin_sum %>% mutate(sig = ifelse(`2.5%`*`97.5%`<=0,0,1))
+    
+    print(fit_lin_sum %>% filter(grepl("alpha",param), sig==0) %>% count)
+    print(fit_lin_sum %>% filter(grepl("alpha",param), sig==1) %>% count)
+    ```
+
+    ```{r}
+    mcmc_intervals(as.array(fit_lin_hier_pri_interc_s), pars =
+                         fit_lin_sum %>%
+                         filter(sig == 1, grepl("alpha",param)) %>%
+                         pull(param))
+    ```
+
+
+
+```{r}
+loo_pri_s = loo::loo(loo::extract_log_lik(fit_lin_hier_pri_interc_s))
+print(loo_pri)
+print(loo_1)
+print(loo_soc)
+```
+
+
+#### Model with variable intercept over primary schools grouped together in clusters
+
+This model is done merely for showing how, by reducing the number of parameters, we can reduce overfitting in the model:
+
+```{r}
+data = data %>% mutate(school_clu = 
+            ifelse(primary %in% c(16,69,139), 1,
+            ifelse(primary %in% c(6,37,47,49,61,88,99,116,132,143), 2,
+                   3)))
+
+data$school_clu = data$school_clu %>% as.factor
+```
+
+```{r, eval=F}
+fit_lin_hier_clu_interc = sampling(model_lin_hier_interc_s, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$school_clu%>%levels%>%length,
+               group_mapping = data %>% pull(school_clu) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_clu_interc, "models/fit_lin_clu.rds")
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_clu_interc = readRDS("models/fit_lin_clu.rds")
+```
+
+Let's draw the posteriors' graph like before:
+
+```{r}
+mcmc_intervals(fit_lin_hier_clu_interc %>% as.array, pars =
+                 dimnames(fit_lin_hier_clu_interc)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+The previously defined clusters behave as expected:
+
+* the first group has a large positive coefficient with large variance
+* the second group has a large negative coefficient with large variance
+* the fifth group has a positive coefficient with mean very close to 0 (0.14), although 0 is not within the 95% CI (which starts at 0.04)
+
+Moreover, $\beta$ has a value which is very close to that obtained in all of the previous models.
+
+```{r}
+ppc_stat_grouped(y, yrep = as.matrix(fit_lin_hier_clu_interc, pars = "y_rep"), group = data$school_clu )
+```
+
+
+
+```{r}
+hist_fun(data$attain01%>%as.character%>%as.numeric,
+         as.matrix(fit_lin_hier_clu_interc, pars = "y_rep"),
+         DescTools::BrierScore)
+```
+
+This model shows a worse fit than the previous, but that might be attributed to the previous one overfitting the data.
+
+```{r, cache=T}
+loo::compare(
+  loo::loo(loo::extract_log_lik(fit_lin_hier_pri_interc)),
+  loo::loo(loo::extract_log_lik(fit_lin_hier_clu_interc))
+)
+```
+
+The LOOIC large positive difference tells us that this model with clustered schools has a larger predictive power than the previous one.
+
+### Hierarchy over secondary school
+
+As a final model class, I'll try to fit a model with hierarchy over the secondary school instead of the primary.
+My goal is to check whether we can use the primary school provenance or the secondary school belonging to predict better whether the test will be passed or not.
+
+
+```{r, eval=F}
+fit_lin_hier_sec_interc = sampling(model_lin_hier_interc, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$second%>%levels%>%length,
+               group_mapping = data %>% pull(second) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_sec_interc, "models/fit_lin_sec.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_sec_interc = readRDS("models/fit_lin_sec.rds")
+```
+
+```{r}
+mcmc_intervals(fit_lin_hier_sec_interc %>% as.array, pars =
+                 dimnames(fit_lin_hier_sec_interc)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+
+```{r, cache=T}
+loo_sec =  loo::loo(loo::extract_log_lik(fit_lin_hier_sec_interc))
+print(loo_sec)
+print(loo_1)
+print(loo_soc)
+```
+
+### Cross-hierarchy with secondary school and social extraction
+
+```{r}
+data = data %>% mutate(soc_hi = factor(ifelse(social_cat=="low",0,1)))
+data = data %>% mutate(soc_sec=factor(tidyr::unite(data,"soc_sec",c('soc_hi','second'))$soc_sec))
+
+data %>% pull(soc_sec) %>% table %>% as.matrix
+```
+
+```{r, eval=F}
+fit_lin_hier_soc_sec_interc = sampling(model_lin_hier_interc_s, 
+  data = list(N = data %>% nrow,
+               x = data$verbal,
+               y = y,
+               G = data$soc_sec%>%levels%>%length,
+               group_mapping = data %>% pull(soc_sec) %>%
+                                as.numeric),
+  cores = 4)
+
+saveRDS(fit_lin_hier_soc_sec_interc, "models/fit_lin_soc_sec.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_soc_sec_interc = readRDS("models/fit_lin_soc_sec.rds")
+```
+
+```{r, fig.height=10}
+mcmc_intervals(fit_lin_hier_soc_sec_interc %>% as.array, pars =
+                 dimnames(fit_lin_hier_soc_sec_interc)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+
+```{r, cache=T}
+loo_soc_sec = loo::loo(loo::extract_log_lik(fit_lin_hier_soc_sec_interc))
+print(loo_soc_sec)
+print(loo_1)
+print(loo_soc)
+print(loo_sec)
+```
+
+
+# Conclusion
+
+During this project, the dataset ScotsSec was analyzed. It contains the marks (1-10) obtained by a group of Scottish secondary school students, coming from a set of 19 schools, at a test.
+
+The following analyses were performed:
+
+1. Relationships between the main variables in this model
+  * I recoded variable `attain` from a discrete one with 10 terminations to a dichotomic one, which can be interpreted as passed/not passed the exam
+  * There seems to be a clear correlation between `attain01` and `verbal`, the result of a test conducted on the students before accessing the secondary school. The correlations between `attain01` and `sex` seems spurious, almost fully explained by `verbal`; the `class` variable, instead, if recoded into a factor, shows some correlation with `attain01` even when `verbal` is taken into account.
+2. Fit of a bayesian logistic linear regression for `attain01`:
+  * with only `verbal` as a covariate (called **base model**): shows a nice fit, posterior predictive checks are good
+  * adding a hierarchy over social class: improves model predictive performance
+  * adding a hierarchy over primary school provenence (with fixed slope): shows improved fit, but predictive check using LOOIC isn't consistent with this; 
+    + using informative prior reduces the number of "significative" coefficients, but LOOIC improves by a small margin over **base model**; still can't beat model with `verbal` and social extraction;
+  * adding a hierarchy over secondary school with informative prior: intercepts are very small and most of them not significative, doesn't improve LOOIC w.r.t. the **base model**
+
+The best model considered the observations above, is the following:
+
+$$
+i\in \{1,...,3435\} \\
+\text{attain01}_{i} \sim Bernoulli(\text{logit}^{-1}(\eta_i)) \\
+\eta_i = \alpha_{g(i)} + \beta \cdot \text{verbal}_i \\
+\alpha \sim N(0,10) \\
+\beta \sim N(0,2.5) \\
+g(i) \text{ maps unit } i \text{ to its class extraction } j,\ \ j\in\{1,2,3\}
+$$
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+y_rep = as.matrix(fit_lin_hier_soc_interc,
+                                    pars = "y_rep")[1:200,]
+
+
+vals = y_rep %>% apply(1,function(x)pROC::auc(pROC::roc(y, x)))
+  
+print(paste0("average statistic = ",mean(vals)))
+print(paste0("sd = ",sd(vals)))
+  
+ggplot(data = vals %>% as_tibble, aes(x=value)) +
+    geom_histogram(aes(y=..density..),  fill = "blue") +
+    geom_density() +
+    xlab ( "AUC" )
+```
+
+## Possible improvements
+
+Possible improvements in analyzing this dataset:
+
+* Fit a logistic regression with Probit link instead of logit$^{-1}$. The generic `stan` file for it is included in the appendix.
+
+* Consider the variable `attain`. Its distribution is:
+  + discrete with values from 1 to 10
+  + multimodal with spikes at 2 and 10
+  
+  To model directly this as a likelihood, two following approaches can be considered:
+  + Model `attain` as a multinomial random variable with 10 possible outcomes:
+  
+  $$
+  \mathbb{p} = [p_1, ..., p_{10}]^T,\ \sum_{j=1}^{10}p_j=1 \\
+  y \sim Multi(n, \mathbb{p}) 
+  $$
+    One of the outcomes (e.g. 1) is elected as a baseline, and each of the other outcomes have their own linear predictor:
+    
+  $$
+  \eta_j = X\beta^{(j)}
+  $$
+    Then
+    
+  $$
+  \mathrm{B} = \{\beta^{(j)}\}_{j\in \{1,...,10\}} \\
+  \beta^{(1)}=0 \text{ baseline} \\
+  p(y|\mathrm{B}) = \prod_{j=1}^{10}\frac{\exp(\eta_j)}{\sum_{k=1}^{10} \exp(\eta_k)}
+  $$
+  
+  + Model `attain` as a mixture of densities:
+  
+  1. Transform this variable as $z_i = \frac{\text{attain}_i - 1}{9}$
+  2. Suppose it continuous
+  3. Take its likelihood to be a mixture of $K$ betas, each with its own $\alpha_k, \beta_k$ parameters:
+  
+  $$
+  \rho_1,...,\rho_k: (\rho_i\geq 0) \wedge (\sum_k \rho_k = 1) \\
+  p(y_i|\alpha,\beta,\rho) = \sum_{k=1}^K \rho_k\cdot 
+                                  p_k(y_i|\alpha_k,\beta_k)
+  $$
+  
+  4. Fix priors on $\alpha, \beta, \rho$.
+  
+  
+# Appendix - Stan files
+
+## Simple logistic regression with one predictor
+
+```{r}
+cat(readLines('models/stan_model_glm_1.stan'), sep = '\n')
+```
+
+## Hierarchical logistic regression with one predictor and group, variable intercept
+
+```{r}
+cat(readLines('models/stan_model_glm_2.stan'), sep = '\n')
+```
+
+### More informative priors
+
+```{r}
+cat(readLines('models/stan_model_glm_2_pri_strong.stan'), sep = '\n')
+```
+
+## Hierarchical logistic regression with one predictor and group, variable intercepts and slopes
+
+```{r}
+cat(readLines('models/stan_model_glm_3.stan'), sep = '\n')
+```
+
+## Simple probit regression with one predictor
+
+```{r}
+cat(readLines('models/stan_model_glm_1probit.stan'), sep = '\n')
+```
+
+  

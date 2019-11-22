@@ -1,0 +1,350 @@
+---
+title: "Homework 01"
+author: "Marco Zullich"
+date: "6 April 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# TH-1
+
+To fit the model with uninformative prior using `bayesglm`. This function assumes a Student-t prior distribution for the parameters, hence, to reproduce a noninformative priors case, we need to set the `prior.scale` parameter to infinite for both the slope and the intercept, and `prior.df` to 1 (to produce a curve as flat as possible). After fitting, we plot our dataset with the regression line to visualize if it fits our data well.
+
+```{r}
+(lm = arm::bayesglm("dist~speed", data=cars, prior.scale=Inf, prior.df = 1, prior.scale.for.intercept = Inf, prior.df.for.intercept = 1))
+
+plot(cars$dist ~ cars$speed)
+abline(a=lm$coefficients[1], b=lm$coefficients[2], col="red")
+```
+
+To fit the informative model, instead, we just play with the parameters of `bayesglm`
+```{r}
+(lm_inf1 = arm::bayesglm("dist~speed", data=cars, prior.scale=1, prior.df = Inf, prior.scale.for.intercept = 1, prior.df.for.intercept = Inf))
+(lm_inf2 = arm::bayesglm("dist~speed", data=cars, prior.scale=.1, prior.df = Inf, prior.scale.for.intercept = .1, prior.df.for.intercept = Inf))
+(lm_inf3 = arm::bayesglm("dist~speed", data=cars, prior.mean = 1, prior.scale=.2, prior.df = Inf, prior.mean.for.intercept = 1, prior.scale.for.intercept = .2, prior.df.for.intercept = Inf))
+(lm_inf4 = arm::bayesglm("dist~speed", data=cars, prior.scale=.001, prior.df = Inf, prior.scale.for.intercept = .001, prior.df.for.intercept = Inf))
+
+plot(cars$dist ~ cars$speed)
+abline(a=lm_inf1$coefficients[1], b=lm_inf1$coefficients[2], col="red")
+abline(a=lm_inf2$coefficients[1], b=lm_inf2$coefficients[2], col="orange")
+abline(a=lm_inf3$coefficients[1], b=lm_inf3$coefficients[2], col="cyan")
+abline(a=lm_inf4$coefficients[1], b=lm_inf4$coefficients[2], col="chocolate4")
+abline(a=lm$coefficients[1], b=lm$coefficients[2], col="blue", lty=2)
+legend(5,120,c("Noninformative","Mean=0, SD=1", "Mean=0, SD=.1", "Mean=1, SD=.2", "Mean=0, SD=.001"), col=c("blue","red","orange","cyan","chocolate4"), lty=c(2,1,1,1,1))
+```
+
+We notice how the data strongly dominate the likelihood: in fact, by setting the standard deviation of the prior to 1, we get the same result of the noninformative case; however, by playing with the value for SD, and setting it to very low values, we can see that the regression line is shifted a bit lower (there're only slight changes in intercept). If we set a too low SD, the prior dominates the data too much, resulting in a flat line with extremely low values for intercept and coefficient which does not fit the data at all.
+
+
+# Ecercise 2.7
+
+## a)
+
+The binomial distribution, whose pmf is
+
+$$
+Bin(n,\pi) = \binom{n}{y}\theta^y(1-\theta)^{n-y}
+$$
+Belongs to the exponential family, and its natural parameter may be expressed as
+$$
+\phi(\theta) = logit(\theta) = log(\theta/(1-\theta))
+$$
+$\pi$ is a probability value, $\rightarrow \in [0,1]$; $\phi(\pi)$ is then defined over the whole real line.
+
+We then suppose to have a uniform constant prior for $\phi(\theta)$, hence $\pi_{\phi(\theta)}(\phi(\theta)) \propto k$, with $k \in \mathbb{R}$.
+
+To find the corresponding prior for $\theta, \pi_\theta(\theta)$ we must invert the logit function:
+
+$$
+\theta = logit(\theta)^{-1} = \frac{\exp{\phi(\theta)}}{1+\exp{\phi(\theta)}} \doteq invlogit(\theta)
+$$
+
+Then
+
+$$
+\pi_\theta(\theta) = \pi_{\phi(\theta)}(invlogit(\theta)^{-1}) \frac{\mathrm{d}\ invlogit(\theta)^{-1}}{\mathrm{d}\theta} =
+\pi_{\phi(\theta)}(logit(\theta)) \frac{\mathrm{d}\ logit(\theta)}{\mathrm{d}\theta}
+\propto k \cdot \frac{1}{\theta(1-\theta)} \propto   \frac{1}{\theta(1-\theta)}
+$$
+
+
+## b)
+
+The posterior is the following
+$$
+p(y|\theta)\cdot  \pi(\theta) \propto \theta^y(1-\theta)^{n-y}\theta^{-1}(1-\theta)^{-1} = 
+\theta^{y-1}(1-\theta)^{n-y-1} 
+$$
+Which is the core for a $Beta(y, n-y)$.
+
+If we consider its integral over the whole parameter space
+$$
+\int_0^1\theta^{y-1}(1-\theta)^{n-y-1}\ d\theta
+$$
+When $y=0 \vee y=n$, it becomes either:
+$$
+\int_0^1(1-\theta)^{n-1}/\theta\ d\theta
+$$
+or
+$$
+\int_0^1\theta^{n-1}/(1-\theta)\ d\theta
+$$
+
+We notice that, in both cases, it's an improper integral, since 0 and 1 are both vertical asymptotes for the two function respectively. To solve the integral, we first have to consider the indefinite case, using the decomposition $(1-\theta)^{n}=\sum_{i=0}^{n}\binom{n}{i}(-\theta)^i$:
+
+$$
+\int(1-\theta)^{n-1}/\theta\ d\theta = \int \sum_{i=0}^{n-1}\binom{n-1}{i}(-\theta)^i/\theta\ d\theta
+$$
+We can externalize from the integral everything not containing $\theta$, while decomposing $(-\theta)^i$ as $(-1\cdot\theta)^i = (-1)^i(\theta)^i$:
+$$
+\sum_{i=0}^{n-1}\binom{n-1}{i}(-\theta)^i/\theta\ d\theta = \sum\binom{n-1}{i}(-1)^i\int\theta^{i-1}d\theta
+$$
+The integral for $\theta^{i-1}$ has different solutions depending upon the value of $i$:
+
+1. If $i>0$, it is $\theta^i/i$;
+2. If $\theta=0$, it is $log(\theta)$
+
+Unwinding the sum, then, we'll have $n-2$ polynomial terms in \theta and one logarithmic term in \theta. It's easy to see as, if we bring our attention back to the definite integral, we'll have that the logarithmic term will yield an infinite value as we approach zero, while the polynomial part will yield real values, thus resulting in an infinite integral for our posterior, hence its improper nature for the extreme value $y=0$.
+For the opposite case ($y=n$), we'll have an analogous result since we have a $log(1-\theta)$, which is infinite when we approach 1.
+
+
+# Exercise 2.8
+
+Prior distribution:
+
+$$ \theta \sim N(\mu_0, \tau^2_0) = N(180, 40^2) = N(180, 1600) $$
+
+Likelihood:
+
+$$ y_i|\theta \sim N(\theta, 400)  $$
+
+We know that $\bar{y}=150$.
+
+## a) Obtain posterior as a function of $n$
+
+We also know that (ref. to Gelman book for proof), for a normal prior and likelihood, with population variance known:
+
+$$
+\pi(\theta|y) = N \bigg( \frac{\mu_0/ \tau^2_0 + n \bar{y} / \sigma^2}{1/ \tau^2_0 + n / \sigma^2},
+    (1/\tau^2_0+n/\sigma^2)^{-1} \bigg)
+$$
+    
+Applied to our data:
+$$
+N\bigg(\frac{180/1600+n \cdot 150/400}{1/1600+n/400}, (1/1600+n/400)^{-1} \bigg)
+=
+N\bigg(\frac{0.1125+n \cdot 0.3750}{1/1600+n/400}, (1/1600+n/400)^{-1}\bigg)
+$$
+
+
+
+## b) Obtain posterior predictive as a function of $n$
+
+We know that the posterior predictive distribution $\tilde{y}|y ~ N(\mu_n, \sigma^2_n+\sigma^2)$, where $\mu_n$ and $\sigma^2_n$ are the mean and variance from the posterior. Hence:
+
+$$
+\tilde{y}|y \sim N\bigg(\frac{0.1125+n\cdot0.3750}{1/1600+n/400}, (1/1600+n/400)^{-1} + 400\bigg)
+$$
+
+The mean is the same of the posterior, while the posterior variance gets enlarged encompassing also prior uncertainty. 
+
+## c) Obtain 95% posterior and posterior predictive intervals with $n=10$
+
+If $n=10$, 
+
+$$
+\theta|y \sim N\bigg( \frac{0.1125+n \cdot 0.3750}{1/1600+n/400}, (1/1600+n/400)^{-1} \bigg) = N(3.8625/0.0256, 39.0244) = N(150.8789, 39.0244)
+$$
+
+
+The 95% posterior interval is hence obtained from this distribution:
+
+```{r}
+qnorm(.025, 150.8789, sqrt(39.0244))
+qnorm(.975, 150.8789, sqrt(39.0244))
+```
+
+For the predictive posterior 95% interval, we just need to toggle the variance of the distribution by summing the ground truth:
+```{r}
+qnorm(.025, 150.8789, sqrt(39.0244 + 400))
+qnorm(.975, 150.8789, sqrt(39.0244 + 400))
+```
+We see how the ground truth contributes to a large increase in variance.
+
+## d) Same with $n=100$
+
+For $n=100$:
+$$
+\theta|y \sim N\bigg(\frac{0.1125+n\cdot0.3750}{1/1600+n/400}, (1/1600+n/400)^{-1} \bigg) = N(150.0748, 3.9900)
+
+$$
+Then
+```{r}
+qnorm(.025, 150.0784, sqrt(3.9900))
+qnorm(.975, 150.0784, sqrt(3.9900))
+```
+and, for the posterior predictive,
+```{r}
+qnorm(.025, 150.0784, sqrt(3.9900 + 400))
+qnorm(.975, 150.0784, sqrt(3.9900 + 400))
+```
+
+We see how, increasing $n$, the posterior and posterior predictive mean gets pulled towards the sample mean, while the posterior variance decreases towards zero; the posterior predictive variance instead still remains hight due to the large value imposed by the ground truth.
+
+# Lab-1
+
+
+```{r, include=FALSE}
+library(AER)
+
+data("ShipAccidents")
+```
+
+## 1. Plot priors
+
+```{r}
+#Here we store all the params - each row contains a couple of params for the linked Gamma prior
+params = matrix(c(1,.5,1,2,1,10,2,2,.5,0), ncol = 2, nrow = 5, byrow = T)
+
+plot(NULL, xlim=c(0,3), ylim=c(0,3), xlab="x", ylab="p(x)", main = "Priors for Ship Accidents data")
+
+for(i in 1:(nrow(params)-1)){
+  curve(dgamma(x,params[i,1],params[i,2]), add=T, col=i)  
+}
+curve(1/sqrt(x), add = T, col= 5, lty = 5)
+legend(x=2, y=3, c("Gamma(1,0.5)", "Gamma(1,2)","Gamma(1,10)","Gamma(2,2)","Jeffreys'"), col=c(1,2,3,4,5), lty=c(rep(1,4),5))
+```
+
+## 2. Plot posteriors for each prior
+
+First, we have to generalize the model in the lab's slides for observations with different exposure. As suggested by Gelman (page 45 of textbook), we account for it by setting $y_i\sim Poisson(t_i\theta)$, where $t_i$ is the exposure for unit $i$. The likelihood becomes then 
+$$
+p(y|\theta) \sim \theta^{\sum y_i}e^{(-\sum t_i)\theta} 
+$$
+, which is a $Gamma(\sum y_i +1, \sum t_i)$.
+
+
+With Gamma prior, the posterior is hence:
+
+
+$$
+\pi(\theta|y,t) = Gamma\bigg(\alpha+\sum_i y_i, \beta + \sum_i t_i\bigg)
+$$
+
+
+Having a closer look at the data:
+```{r}
+head(ShipAccidents)
+```
+we have that $t_i \rightarrow \texttt{service}; y_i \rightarrow \texttt{incidents}$.
+
+We store in `y` the value for our count data, the incidents, removing those values with `service` equals to 0 since they're useless for our analysis.
+```{r}
+(y = ShipAccidents[ShipAccidents$service>0,"incidents"])
+```
+
+Analogously, we define a variable `t` to store info about exposure:
+```{r}
+(t = ShipAccidents[ShipAccidents$service>0,"service"])
+```
+
+
+The posterior is:
+$$
+\theta|y \sim Gamma\bigg(\alpha+\sum_iy_i; \beta + \sum_i t_i\bigg)
+$$
+
+Since `sum(t)` is very large, it would lead us to unplottable posterior due to limitations of R. To allow for a visual analysis of our data, we arbitrarily rescale the exposure by a factor of 5000:
+```{r}
+t_new = t/5000
+```
+Note that this leads to a different interpretation of the rate (accidents in months of service/5000 instead of accidents in months of service): to obtain the same results as in the original data, `y` would have to be rescaled as well.
+
+We plot it for each configuration of parameters (note that the x axis doesn't begin at 0 to allow for a better zoom on the curves) adding the likelihood in dashed line for reference:
+```{r}
+#define functional for posterior
+dposterior_gamma_pois = function(x, alpha, beta, rate, exposure){
+    return (dgamma(x, alpha + sum(rate), beta + sum(exposure)))
+}
+
+#for-cycle plotting
+plot(NULL, xlim=c(6.75,14), ylim=c(0,1), xlab="x", ylab="p(x)", main="Posteriors and likelihood for ship accidents data")
+
+for(i in 1:nrow(params)){
+  curve(dposterior_gamma_pois(x, params[i,1], params[i,2], y, t_new), add=T, col=i)  
+}
+curve(dgamma(x, sum(y)+1, sum(t_new)), add = T, col = "orange", lwd=2, lty=5)
+legend(x=11.5, y=1, c("pr. Gamma(1,0.5)", "pr. Gamma(1,2)","pr. Gamma(1,10)","pr. Gamma(2,2)","Jeffreys' pr.", "likelihood"), col=c(1,2,3,4,5,"orange"), lty=c(rep(1,5),5))
+```
+
+
+## 3. Find posterior expectation and MAP
+
+The expected value for the gamma posterior is $\frac{\sum y_i + \alpha}{n+\beta}$, while the MAP is $\frac{\sum y_i + \alpha-1}{n+\beta}$.
+
+```{r}
+for(i in 1:nrow(params)){
+  print(paste0("Prior alpha = ", params[i,1], ", beta = ", params[i,2]))
+  print(paste0("    Exp. value: ", (sum(y)+params[i,1])/(sum(t_new)+params[i,2]) ))
+  print(paste0("    MAP: ", (sum(y)+params[i,1]-1)/(sum(t_new)+params[i,2]) ))
+}
+```
+
+## 4. Comments
+
+We see that the posteriors seem pretty simmetric (as confirmed by the means and MAP being very close to each other) concentrated with spikes around 10 and 11.
+
+The $Gamma(1,10)$ (the most informative prior), is the one which yields the most informative posterior as well, having a very steep and narrow bell shape; however, it's the one whose mean and MAP are farther away from our likelihood.
+
+The $Gamma(2,2)$ and $Gamma(1,2)$ yield pretty undistinguishable posteriors simmetrically located around 10.
+
+The other two priors, $Gamma(1, 0.5)$ and Jeffreys', are those which get farther to the right, and are also those which yield less informative posteriors, having a larger bell shape than the other posteriors. We see how the Jeffreys', as expected, is the posterior which is closer to the likelihood, being merely distinguishable from it.
+
+## 5. Construct the 95% credible intervals, equi-tails and highest posterior density (HPD), using the Jeffreys’ prior.
+
+The credible interval can be obtained from the quantiles of the theoretical gamma posterior:
+```{r}
+(cred = qgamma(c(.025,.975),.5+sum(y),sum(t_new)))
+```
+
+To construct the HPD, as done during lab, we simulate 1000 observations from the theoretical gamma
+```{r}
+set.seed(1)
+hpd<-function(y,p){
+  dy<-density(y)
+  md<-dy$x[dy$y==max(dy$y)]
+  py<-dy$y/sum(dy$y)
+  pys<--sort(-py)
+  ct<-min(pys[cumsum(pys)< p])
+  list(hpdr=range(dy$x[py>=ct]),mode=md)
+}
+(hpd_int = hpd(rgamma(1000, .5+sum(y),sum(t_new)), .95))
+```
+
+We can plot those two intervals as well:
+```{r}
+curve(dposterior_gamma_pois(x, params[5,1], params[5,2], y, t_new), xlim=c(8,14), ylim=c(0,.75), xlab="x", ylab="p(x)", lwd=3, main ="95% credible and HPD interval for posterior")
+
+segments(cred[1],0, cred[1], dposterior_gamma_pois(cred[1], params[5,1], params[5,2], y, t_new), col="red", lwd=2)
+
+segments(cred[2],0, cred[2], dposterior_gamma_pois(cred[2], params[5,1], params[5,2], y, t_new), col="red", lwd=2)
+
+segments(cred[1], .09, cred[2], .09, col="red")
+
+text(mean(cred), .12, "95% credible interval", col="red")
+
+segments(hpd_int$hpdr[1],0, hpd_int$hpdr[1], dposterior_gamma_pois(hpd_int$hpdr[1], params[5,1], params[5,2], y, t_new), col="blue", lwd=2)
+
+segments(hpd_int$hpdr[2],0, hpd_int$hpdr[2], dposterior_gamma_pois(hpd_int$hpdr[2], params[5,1], params[5,2], y, t_new), col="blue", lwd=2)
+
+segments(hpd_int$hpdr[1], .05, hpd_int$hpdr[2], .05, col="blue")
+
+text(mean(hpd_int$hpdr), .03, "95% HPD interval", col="blue")
+```
+
+Since the distribution is very symmetric, the two intervals almost coincide (note that the 95% HPD interval should be plotted inside the histogram of the simulated observations from where it was obtained, plotting it here isn't 100% correct).

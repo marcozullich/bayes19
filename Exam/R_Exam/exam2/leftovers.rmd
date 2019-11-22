@@ -1,0 +1,58 @@
+### Cross-hierarchy over sex and social category
+
+#### Model with variable intercept, fixed slope
+
+First, I need to add the column corresponding to the cross-hierarchy in my data:
+  
+  ```{r}
+data = data %>% tibble::add_column( hier =
+                                      tidyr::unite(data,"hier",c('sex','social_cat'))$hier
+)
+data$hier = data$hier %>% as.factor
+```
+
+Then, I can fit the model
+
+```{r, eval=F}
+fit_lin_hier_sex_soc_interc = sampling(model_lin_hier_interc, 
+                                       data = list(N = data %>% nrow,
+                                                   x = data$verbal,
+                                                   y = y,
+                                                   G = data$hier%>%levels%>%length,
+                                                   group_mapping = data %>% pull(hier) %>%
+                                                     as.numeric),
+                                       cores = 4)
+
+saveRDS(fit_lin_hier_sex_soc_interc, "models/fit_lin_3.rds")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, cache=T}
+fit_lin_hier_sex_soc_interc = readRDS("models/fit_lin_3.rds")
+```
+
+
+```{r}
+mcmc_intervals(as.matrix(fit_lin_hier_sex_soc_interc), pars = 
+                 dimnames(fit_lin_hier_sex_soc_interc)$parameters %>%
+                 as_tibble %>%
+                 filter(grepl("alpha|beta",value)) %>% pull)
+```
+
+The intercepts seem to be significative only for class 3 and 6 (corresponding to low social category for both males and females)
+
+```{r}
+hist_fun(data$attain01%>%as.character%>%as.numeric,
+         as.matrix(fit_lin_hier_sex_soc_interc, pars = "y_rep"),
+         DescTools::BrierScore)
+```
+
+The Briar score is improved by too little over the non-hierarchical mode.
+
+```{r}
+loo::compare(
+  loo_1,
+  loo::loo(loo::extract_log_lik(fit_lin_hier_sex_soc_interc))
+)
+```
+
+The LOOIC instead tells us that there's a moderate improvement in predictive power by the latter model.
